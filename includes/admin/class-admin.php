@@ -942,7 +942,7 @@ class Admin {
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="site-shield-log-' . gmdate( 'Y-m-d' ) . '.csv"' );
 		$out = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions
-		fputcsv( $out, array( 'time_utc', 'severity', 'event', 'message', 'user', 'ip', 'user_agent', 'object_type', 'object_id', 'context' ) );
+		fputcsv( $out, array( 'time_utc', 'severity', 'event', 'message', 'user', 'ip', 'user_agent', 'object_type', 'object_id', 'context' ), ',', '"', '\\' );
 		for ( $page = 1; $page <= 200; $page++ ) {
 			$args['page'] = $page;
 			$rows         = Event_Log::query( $args )['rows'];
@@ -955,7 +955,7 @@ class Admin {
 					}
 				}
 				unset( $cell );
-				fputcsv( $out, $line );
+				fputcsv( $out, $line, ',', '"', '\\' );
 			}
 			if ( count( $rows ) < 500 ) {
 				break;
