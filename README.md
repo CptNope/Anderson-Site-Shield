@@ -122,4 +122,4 @@ Pushing a tag like `v1.0.1` builds the zip and publishes a GitHub release, which
 
 GPL-2.0-or-later. The bundled QR code library is [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (MIT).
 
-Built by [Jeremy Anderson](https://jeremyanderson.tech).
+Built by Jeremy Anderson of [Jeremy Anderson Tech](https://jeremyanderson.tech/): WordPress development, security hardening and AI tools. [Services](https://jeremyanderson.tech/services/)
