@@ -23,7 +23,7 @@ A WordPress security plugin that locks a site down and keeps a record of what ha
 
 ## Install
 
-1. In WordPress, go to **Plugins → Add New**, search for "JAT Site Shield", then install and activate it. (Or download `jat-site-shield.zip` from the [latest release](https://github.com/CptNope/Anderson-Site-Shield/releases/latest) and use **Upload Plugin**.)
+1. In WordPress, go to **Plugins → Add New**, search for "JAT Site Shield", then install and activate it. (Or download `jat-site-shield.zip` from the [latest release](https://github.com/CptNope/JAT-Site-Shield/releases/latest) and use **Upload Plugin**.)
 2. You'll be asked to set up two-factor for your administrator account. Scan the QR code, enter the code, and save your backup codes in your password manager.
 3. Open **Site Shield → Overview** and work through anything on the checklist that isn't green.
 

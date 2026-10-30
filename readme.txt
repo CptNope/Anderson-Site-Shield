@@ -53,7 +53,7 @@ JAT Site Shield is made by [Jeremy Anderson Tech](https://jeremyanderson.tech/),
 
 = Free, open source, no account =
 
-Everything in the plugin is free. There is no paid version, no sign-up and no tracking. Development happens in the open on [GitHub](https://github.com/CptNope/Anderson-Site-Shield).
+Everything in the plugin is free. There is no paid version, no sign-up and no tracking. Development happens in the open on [GitHub](https://github.com/CptNope/JAT-Site-Shield).
 
 = Made by Jeremy Anderson Tech =
 
@@ -75,7 +75,7 @@ Recommended next steps:
 * **Settings → Login protection:** turn on **Move the login page**, choose an address that isn't easy to guess, and bookmark it.
 * **Settings → Hardening:** click **Test it now** under "Block PHP in the uploads folder".
 * **Settings → Monitoring and alerts:** add the address that should receive alerts.
-* Optional: put the site behind Cloudflare's free plan with the [free Cloudflare setup guide](https://github.com/CptNope/Anderson-Site-Shield/blob/main/docs/cloudflare.md).
+* Optional: put the site behind Cloudflare's free plan with the [free Cloudflare setup guide](https://github.com/CptNope/JAT-Site-Shield/blob/main/docs/cloudflare.md).
 
 == Frequently Asked Questions ==
 
@@ -97,7 +97,7 @@ Your server is probably nginx, which ignores `.htaccess` files. Ask your host to
 
 = Does it work with Cloudflare? =
 
-Yes. It detects Cloudflare by itself and reads real visitor IPs from Cloudflare's header, but only when the request really comes from Cloudflare's network, so the header can't be faked. **Settings → Network** shows which IP it sees for you. For a step-by-step free-plan setup (SSL, firewall rules, rate limiting, locking your server to Cloudflare), see the [free Cloudflare setup guide](https://github.com/CptNope/Anderson-Site-Shield/blob/main/docs/cloudflare.md).
+Yes. It detects Cloudflare by itself and reads real visitor IPs from Cloudflare's header, but only when the request really comes from Cloudflare's network, so the header can't be faked. **Settings → Network** shows which IP it sees for you. For a step-by-step free-plan setup (SSL, firewall rules, rate limiting, locking your server to Cloudflare), see the [free Cloudflare setup guide](https://github.com/CptNope/JAT-Site-Shield/blob/main/docs/cloudflare.md).
 
 = My site is behind another proxy or load balancer. =
 
@@ -137,7 +137,7 @@ No. See "External services" below for the only outside requests it makes.
 
 = Where do I report a bug? =
 
-Use the [support forum](https://wordpress.org/support/plugin/jat-site-shield/). Security problems in the plugin itself: please report them privately through [GitHub](https://github.com/CptNope/Anderson-Site-Shield/security/advisories/new).
+Use the [support forum](https://wordpress.org/support/plugin/jat-site-shield/). Security problems in the plugin itself: please report them privately through [GitHub](https://github.com/CptNope/JAT-Site-Shield/security/advisories/new).
 
 == External services ==
 

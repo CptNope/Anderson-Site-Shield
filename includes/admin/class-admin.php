@@ -892,7 +892,7 @@ class Admin {
 						<p class="description"><?php esc_html_e( 'Addresses of proxies between visitors and WordPress that you control: a load balancer, Sucuri, or a web server on the same machine (127.0.0.1) that passes Cloudflare’s header on. Cloudflare itself needs no entry.', 'jat-site-shield' ); ?></p>
 					</td></tr>
 					<tr><th scope="row"><?php esc_html_e( 'Cloudflare', 'jat-site-shield' ); ?></th><td>
-						<p><?php esc_html_e( 'Cloudflare’s free plan blocks attacks before they reach your server and works alongside Site Shield.', 'jat-site-shield' ); ?> <a href="<?php echo esc_url( 'https://github.com/CptNope/Anderson-Site-Shield/blob/main/docs/cloudflare.md' ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Free Cloudflare setup guide', 'jat-site-shield' ); ?></a></p>
+						<p><?php esc_html_e( 'Cloudflare’s free plan blocks attacks before they reach your server and works alongside Site Shield.', 'jat-site-shield' ); ?> <a href="<?php echo esc_url( 'https://github.com/CptNope/JAT-Site-Shield/blob/main/docs/cloudflare.md' ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Free Cloudflare setup guide', 'jat-site-shield' ); ?></a></p>
 					</td></tr>
 				</table>
 			</div>
