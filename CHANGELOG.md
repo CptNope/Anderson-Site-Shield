@@ -2,7 +2,15 @@
 
 All notable changes to JAT Site Shield. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the plugin uses [semantic versioning](https://semver.org/). The WordPress.org changelog in [readme.txt](readme.txt) is a shorter version of this file.
 
-## [1.0.0]: submitted to WordPress.org
+## [1.0.1]: 2026-10-30
+
+### Fixed
+- The QR code on the two-factor setup screen was missing from zips built from the GitHub repository (including the v1.0.0 GitHub release). The bundled QR library in `assets/vendor/` had been excluded by a `.gitignore` rule meant for Composer's `vendor/` folder. The manual setup key always worked.
+
+### Added
+- CI builds the plugin zip on every pull request and fails if a required file is missing from it.
+
+## [1.0.0]: 2026-10-30
 
 First release.
 
@@ -43,4 +51,5 @@ First release.
 - Suggested privacy policy text. Uninstall removes all data, the two-factor key and the uploads rules.
 - Passes WordPress's Plugin Check with no errors or warnings, and the WordPress security and PHP 7.4+ compatibility sniffs in CI.
 
-[1.0.0]: https://github.com/CptNope/JAT-Site-Shield/commits/main
+[1.0.1]: https://github.com/CptNope/JAT-Site-Shield/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/CptNope/JAT-Site-Shield/releases/tag/v1.0.0
