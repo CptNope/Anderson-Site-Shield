@@ -13,7 +13,7 @@
 ![Plugin Check: passing](https://img.shields.io/badge/Plugin%20Check-passing-0a6a5c)
 [![License: GPL v2 or later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 
-**Version 1.0.1** · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Free Cloudflare setup guide](docs/cloudflare.md)
+**Version 1.0.2** · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Free Cloudflare setup guide](docs/cloudflare.md)
 
 Free · no paid version · no sign-up · nothing sent to us
 

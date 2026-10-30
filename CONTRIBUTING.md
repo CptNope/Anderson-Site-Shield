@@ -80,7 +80,7 @@ Write commit messages in the imperative ("Block PHP in hidden uploads folders"),
 
 1. Bump the version in `jat-site-shield.php` (header and `JATSS_VERSION`) and `Stable tag` in `readme.txt`.
 2. Add the release to `CHANGELOG.md` and to the changelog and upgrade notice in `readme.txt`.
-3. Merge to `main`, then push a tag such as `v1.0.1`. The release workflow checks that the three versions match, builds `jat-site-shield.zip`, attaches it to a GitHub release and, once the `SVN_USERNAME` and `SVN_PASSWORD` repository secrets are set, deploys it with the assets in `.wordpress-org/` to WordPress.org.
+3. Merge to `main`, then publish a GitHub release with a new tag such as `v1.0.3` (or push the tag). The release workflow checks that the three versions match, builds `jat-site-shield.zip`, attaches it to a GitHub release and, once the `SVN_USERNAME` and `SVN_PASSWORD` repository secrets are set, deploys it with the assets in `.wordpress-org/` to WordPress.org.
 
 ## License
 
