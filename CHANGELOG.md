@@ -6,6 +6,7 @@ All notable changes to JAT Site Shield. The format follows [Keep a Changelog](ht
 
 ### Fixed
 - The QR code on the two-factor setup screen was missing from zips built from the GitHub repository (including the v1.0.0 GitHub release). The bundled QR library in `assets/vendor/` had been excluded by a `.gitignore` rule meant for Composer's `vendor/` folder. The manual setup key always worked.
+- While an administrator was still setting up two-factor, the admin screens logged a REST error, because the block on the API also stopped WordPress reading the user's own profile (`GET /wp/v2/users/me`) for their preferences. That one read is now allowed, with method overrides refused; everything else stays blocked until setup is finished.
 
 ### Added
 - CI builds the plugin zip on every pull request and fails if a required file is missing from it.

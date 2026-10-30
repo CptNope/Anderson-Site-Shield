@@ -201,4 +201,4 @@ If you outgrow these, Cloudflare Pro adds the full managed WordPress rules, long
 
 ---
 
-Part of [JAT Site Shield](https://wordpress.org/plugins/jat-site-shield/) by [Jeremy Anderson Tech](https://jeremyanderson.tech/).
+Part of [JAT Site Shield](https://github.com/CptNope/JAT-Site-Shield) by [Jeremy Anderson Tech](https://jeremyanderson.tech/).

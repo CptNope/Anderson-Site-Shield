@@ -4,8 +4,8 @@ contact_links:
     url: https://github.com/CptNope/JAT-Site-Shield/security/advisories/new
     about: Please don't post security problems in public issues.
   - name: Ask a question or get help
-    url: https://wordpress.org/support/plugin/jat-site-shield/
-    about: How-to questions and help with your own site go to the WordPress.org support forum.
+    url: https://github.com/CptNope/JAT-Site-Shield/blob/main/SUPPORT.md
+    about: Where to ask how-to questions and get help with your own site.
   - name: Hands-on help from Jeremy Anderson Tech
     url: https://jeremyanderson.tech/book-a-call/
     about: Paid help locking down or cleaning up a WordPress site.

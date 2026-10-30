@@ -167,6 +167,7 @@ The activity log stores IP addresses, browser user agents and usernames for secu
 
 = 1.0.1 =
 * Fixed: the QR code on the two-factor setup screen was missing from builds made from the GitHub repository, because the bundled QR library wasn't included. The manual setup key always worked.
+* Fixed: while an administrator was still setting up two-factor, the admin screens logged a REST error because reading their own profile was blocked. That one read is now allowed; everything else in the API stays blocked until setup is finished.
 
 = 1.0.0 =
 * First release: login lockouts, generic login errors, custom login address, two-factor authentication with backup codes, hardening, activity log, email alerts, file integrity scanning and WP-CLI commands.

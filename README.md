@@ -7,7 +7,7 @@
 **Lock WordPress down: login lockouts, two-factor codes, core hardening, an activity log with email alerts, and file integrity checks. One plugin, safe defaults, no account.**
 
 [![CI](https://github.com/CptNope/JAT-Site-Shield/actions/workflows/ci.yml/badge.svg)](https://github.com/CptNope/JAT-Site-Shield/actions/workflows/ci.yml)
-![WordPress.org: in review](https://img.shields.io/badge/WordPress.org-in%20review-21759b)
+![WordPress.org: coming soon](https://img.shields.io/badge/WordPress.org-coming%20soon-21759b)
 ![PHP 7.4–8.4](https://img.shields.io/badge/PHP-7.4%E2%80%938.4-777bb4)
 ![WordPress 6.4+](https://img.shields.io/badge/WordPress-6.4%2B-21759b)
 ![Plugin Check: passing](https://img.shields.io/badge/Plugin%20Check-passing-0a6a5c)
