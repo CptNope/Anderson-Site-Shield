@@ -757,7 +757,7 @@ class Two_Factor {
 		wp_localize_script( 'jatss-two-factor', 'jatssTwoFactor', array( 'copied' => __( 'Copied', 'jat-site-shield' ) ) );
 		wp_enqueue_style( 'jatss-admin', JATSS_URL . 'assets/admin.css', array(), JATSS_VERSION );
 		?>
-		<div class="wrap jatss-wrap">
+		<div class="wrap jatss">
 			<h1><?php esc_html_e( 'Two-factor authentication', 'jat-site-shield' ); ?></h1>
 
 			<?php if ( isset( $_GET['required'] ) && ! $enabled ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
@@ -771,7 +771,7 @@ class Two_Factor {
 			<?php endif; ?>
 
 			<?php if ( $codes ) : ?>
-				<div class="jatss-card">
+				<div class="jatss-panel">
 					<h2><?php esc_html_e( 'Backup codes', 'jat-site-shield' ); ?></h2>
 					<p><?php esc_html_e( 'Each code works once. Keep them in your password manager, not on your phone.', 'jat-site-shield' ); ?></p>
 					<ol class="jatss-codes"><?php foreach ( $codes as $c ) : ?><li><code><?php echo esc_html( $c ); ?></code></li><?php endforeach; ?></ol>
@@ -780,7 +780,7 @@ class Two_Factor {
 			<?php endif; ?>
 
 			<?php if ( ! $enabled ) : ?>
-				<div class="jatss-card jatss-enroll">
+				<div class="jatss-panel jatss-enroll">
 					<h2><?php esc_html_e( '1. Scan this code', 'jat-site-shield' ); ?></h2>
 					<p><?php esc_html_e( 'Use an authenticator app such as 1Password, Google Authenticator, Microsoft Authenticator or Authy.', 'jat-site-shield' ); ?></p>
 					<div id="jatss-qr" class="jatss-qr" data-uri="<?php echo esc_attr( Totp::uri( $pending_secret, $user->user_login ) ); ?>" role="img" aria-label="<?php esc_attr_e( 'QR code for your authenticator app', 'jat-site-shield' ); ?>"></div>
@@ -795,8 +795,8 @@ class Two_Factor {
 					</form>
 				</div>
 			<?php else : ?>
-				<div class="jatss-card">
-					<h2><span class="jatss-pill jatss-pill-ok"><?php esc_html_e( 'On', 'jat-site-shield' ); ?></span> <?php esc_html_e( 'Two-factor is protecting your account', 'jat-site-shield' ); ?></h2>
+				<div class="jatss-panel">
+					<h2 class="jatss-ok"><?php esc_html_e( 'Two-factor is on for your account.', 'jat-site-shield' ); ?></h2>
 					<p>
 						<?php
 						printf(

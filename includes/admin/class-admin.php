@@ -255,7 +255,7 @@ class Admin {
 	 * @param string $title Title.
 	 */
 	private function header( $title ) {
-		echo '<div class="wrap jatss-wrap"><h1 class="jatss-title"><span class="dashicons dashicons-shield" aria-hidden="true"></span> ' . esc_html( $title ) . '</h1>';
+		echo '<div class="wrap jatss"><h1 class="jatss-title">' . esc_html( $title ) . '</h1>';
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		if ( ! empty( $_GET['jatss_msg'] ) ) {
 			$type = ! empty( $_GET['jatss_err'] ) ? 'error' : 'success';
@@ -284,25 +284,86 @@ class Admin {
 		$locks  = Login_Protection::lockouts();
 		$last   = File_Integrity::last();
 
-		$this->header( __( 'Site Shield', 'jat-site-shield' ) );
+		$this->header( __( 'JAT Site Shield', 'jat-site-shield' ) );
 		?>
-		<div class="jatss-grid">
-			<div class="jatss-card jatss-score">
-				<div class="jatss-score-num"><?php echo (int) $ok; ?><span>/<?php echo (int) count( $checks ); ?></span></div>
-				<div><?php esc_html_e( 'protections in place', 'jat-site-shield' ); ?></div>
-			</div>
-			<div class="jatss-card">
-				<div class="jatss-stat"><span class="jatss-stat-num jatss-sev-critical"><?php echo (int) $day['critical']; ?></span><?php esc_html_e( 'critical, 24 h', 'jat-site-shield' ); ?></div>
-				<div class="jatss-stat"><span class="jatss-stat-num jatss-sev-warning"><?php echo (int) $day['warning']; ?></span><?php esc_html_e( 'warnings, 24 h', 'jat-site-shield' ); ?></div>
-			</div>
-			<div class="jatss-card">
-				<div class="jatss-stat"><span class="jatss-stat-num"><?php echo (int) count( $locks ); ?></span><?php esc_html_e( 'IPs locked out now', 'jat-site-shield' ); ?></div>
-				<div class="jatss-stat"><span class="jatss-stat-num"><?php echo (int) ( $week['info'] + $week['notice'] + $week['warning'] + $week['critical'] ); ?></span><?php esc_html_e( 'events, 7 days', 'jat-site-shield' ); ?></div>
+		<?php
+		$off        = array_values( array_filter( $checks, static function ( $c ) { return ! $c['ok']; } ) );
+		$open_files = $last ? array_filter( $last['findings'], static function ( $f ) { return 'info' !== $f['severity'] && ! File_Integrity::is_acknowledged( $f ); } ) : array();
+		$crit_files = array_filter( $open_files, static function ( $f ) { return 'critical' === $f['severity']; } );
+		$s          = Settings::all();
+
+		if ( $crit_files || $day['critical'] ) {
+			$verdict = 'bad';
+			$sentence = __( 'Something on this site needs your attention.', 'jat-site-shield' );
+		} elseif ( $off || $open_files ) {
+			$verdict = 'warn';
+			/* translators: %d: number of protections that are off */
+			$sentence = $off ? sprintf( _n( '%d protection is off.', '%d protections are off.', count( $off ), 'jat-site-shield' ), count( $off ) ) : __( 'Some files need a look.', 'jat-site-shield' );
+		} else {
+			$verdict  = 'ok';
+			$sentence = __( 'This site is locked down.', 'jat-site-shield' );
+		}
+
+		// Logins tile.
+		$twofa_ok  = $s['twofa_enabled'] && (array) $s['twofa_required_roles'];
+		$since     = gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
+		$login_bad = 0 < Event_Log::query( array( 'severity' => 'critical', 'type' => 'auth.', 'since' => $since, 'per_page' => 1 ) )['total']
+			|| 0 < Event_Log::query( array( 'severity' => 'critical', 'type' => '2fa.', 'since' => $since, 'per_page' => 1 ) )['total'];
+		$login_ok  = $s['login_protection'] && $twofa_ok;
+		// Hardening tile.
+		$hard_keys = array( 'harden_xmlrpc', 'harden_user_enum', 'harden_file_edit', 'harden_uploads_php', 'harden_headers', 'harden_hide_version' );
+		$hard_on   = count( array_filter( array_map( static function ( $k ) use ( $s ) { return (bool) $s[ $k ]; }, $hard_keys ) ) );
+		?>
+		<div class="jatss-hero jatss-v-<?php echo esc_attr( $verdict ); ?>">
+			<p class="jatss-sentence"><?php echo esc_html( $sentence ); ?></p>
+			<p class="jatss-meta">
+				<?php
+				printf(
+					/* translators: 1: protections on, 2: total, 3: events in the last 7 days */
+					esc_html__( '%1$d of %2$d protections on. %3$d security events in the last 7 days.', 'jat-site-shield' ),
+					(int) $ok,
+					(int) count( $checks ),
+					(int) ( $week['info'] + $week['notice'] + $week['warning'] + $week['critical'] )
+				);
+				?>
+			</p>
+			<div class="jatss-doors">
+				<?php
+				$this->door(
+					__( 'Logins', 'jat-site-shield' ),
+					__( 'Lockouts and two-factor', 'jat-site-shield' ),
+					$login_bad ? 'bad' : ( $login_ok ? 'ok' : 'warn' ),
+					$login_bad ? __( 'Under attack', 'jat-site-shield' ) : ( $login_ok ? __( 'Protected', 'jat-site-shield' ) : __( 'Needs setup', 'jat-site-shield' ) ),
+					/* translators: %d: number of locked out IPs */
+					sprintf( _n( '%d IP locked out right now.', '%d IPs locked out right now.', count( $locks ), 'jat-site-shield' ), count( $locks ) )
+				);
+				$this->door(
+					__( 'Hardening', 'jat-site-shield' ),
+					__( 'WordPress settings', 'jat-site-shield' ),
+					$hard_on === count( $hard_keys ) ? 'ok' : 'warn',
+					$hard_on === count( $hard_keys ) ? __( 'All on', 'jat-site-shield' ) : __( 'Some off', 'jat-site-shield' ),
+					/* translators: 1: on, 2: total */
+					sprintf( __( '%1$d of %2$d hardening options on.', 'jat-site-shield' ), $hard_on, count( $hard_keys ) )
+				);
+				$this->door(
+					__( 'Files', 'jat-site-shield' ),
+					__( 'Integrity check', 'jat-site-shield' ),
+					! $last ? 'warn' : ( $crit_files ? 'bad' : ( $open_files ? 'warn' : 'ok' ) ),
+					! $last ? __( 'Not checked yet', 'jat-site-shield' ) : ( $open_files
+						/* translators: %d: files */
+						? sprintf( _n( '%d file to review', '%d files to review', count( $open_files ), 'jat-site-shield' ), count( $open_files ) )
+						: __( 'No changes', 'jat-site-shield' ) ),
+					$last
+						/* translators: %s: time ago */
+						? sprintf( __( 'Checked %s ago.', 'jat-site-shield' ), human_time_diff( $last['finished'] ) )
+						: __( 'Runs daily, or start one on the File integrity screen.', 'jat-site-shield' )
+				);
+				?>
 			</div>
 		</div>
 
 		<div class="jatss-columns">
-			<div class="jatss-card">
+			<div class="jatss-panel">
 				<h2><?php esc_html_e( 'Protection checklist', 'jat-site-shield' ); ?></h2>
 				<ul class="jatss-checks">
 					<?php foreach ( $checks as $c ) : ?>
@@ -315,21 +376,21 @@ class Admin {
 			</div>
 
 			<div>
-				<div class="jatss-card">
+				<div class="jatss-panel">
 					<h2><?php esc_html_e( 'Needs a look', 'jat-site-shield' ); ?></h2>
 					<?php if ( ! $recent['rows'] ) : ?>
 						<p class="description"><?php esc_html_e( 'No warnings or critical events. Quiet is good.', 'jat-site-shield' ); ?></p>
 					<?php else : ?>
 						<ul class="jatss-events">
 							<?php foreach ( $recent['rows'] as $e ) : ?>
-								<li><span class="jatss-pill jatss-pill-<?php echo esc_attr( $e['severity'] ); ?>"><?php echo esc_html( $e['severity'] ); ?></span> <?php echo esc_html( $e['message'] ); ?> <span class="description"><?php echo esc_html( human_time_diff( strtotime( $e['created_at'] . ' UTC' ) ) ); ?> <?php esc_html_e( 'ago', 'jat-site-shield' ); ?></span></li>
+								<li class="jatss-s-<?php echo esc_attr( $e['severity'] ); ?>"><span class="jatss-sev jatss-sev-<?php echo esc_attr( $e['severity'] ); ?>"><?php echo esc_html( ucfirst( $e['severity'] ) ); ?></span> <?php echo esc_html( $e['message'] ); ?> <span class="description"><?php echo esc_html( human_time_diff( strtotime( $e['created_at'] . ' UTC' ) ) ); ?> <?php esc_html_e( 'ago', 'jat-site-shield' ); ?></span></li>
 							<?php endforeach; ?>
 						</ul>
-						<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SLUG . '-log' ) ); ?>"><?php esc_html_e( 'Full activity log →', 'jat-site-shield' ); ?></a></p>
+						<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SLUG . '-log' ) ); ?>"><?php esc_html_e( 'Full activity log', 'jat-site-shield' ); ?></a></p>
 					<?php endif; ?>
 				</div>
 
-				<div class="jatss-card">
+				<div class="jatss-panel">
 					<h2><?php esc_html_e( 'Lockouts', 'jat-site-shield' ); ?></h2>
 					<?php if ( ! $locks ) : ?>
 						<p class="description"><?php esc_html_e( 'No IPs are locked out.', 'jat-site-shield' ); ?></p>
@@ -352,13 +413,53 @@ class Admin {
 					</p>
 				</div>
 
-				<div class="jatss-card">
+				<div class="jatss-panel">
 					<h2><?php esc_html_e( 'File integrity', 'jat-site-shield' ); ?></h2>
 					<?php $this->fim_summary( $last ); ?>
 				</div>
 			</div>
 		</div>
+		<?php $this->about(); ?>
 		</div>
+		<?php
+	}
+
+	/**
+	 * One summary tile in the overview.
+	 *
+	 * @param string $title Title.
+	 * @param string $sub   Muted subtitle.
+	 * @param string $tone  ok|warn|bad.
+	 * @param string $state Big state text.
+	 * @param string $note  Note.
+	 */
+	private function door( $title, $sub, $tone, $state, $note ) {
+		?>
+		<div class="jatss-door jatss-tone-<?php echo esc_attr( $tone ); ?>">
+			<p class="jatss-door-title"><?php echo esc_html( $title ); ?> <span><?php echo esc_html( $sub ); ?></span></p>
+			<p class="jatss-door-state"><?php echo esc_html( $state ); ?></p>
+			<p class="jatss-door-note"><?php echo esc_html( $note ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Footer with links, shown on the plugin's own screens.
+	 */
+	private function about() {
+		$base = 'https://jeremyanderson.tech/';
+		?>
+		<aside class="jatss-about" aria-label="<?php esc_attr_e( 'About this plugin', 'jat-site-shield' ); ?>">
+			<p>
+				<strong><?php esc_html_e( 'Free and open source, by Jeremy Anderson.', 'jat-site-shield' ); ?></strong>
+				<?php esc_html_e( 'Need hands-on help locking down or cleaning up a WordPress site? I build and look after WordPress sites.', 'jat-site-shield' ); ?>
+			</p>
+			<p class="jatss-about-links">
+				<a class="button" href="<?php echo esc_url( $base . 'book-a-call/' ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Book a call', 'jat-site-shield' ); ?></a>
+				<a href="<?php echo esc_url( $base . 'services/' ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Services', 'jat-site-shield' ); ?></a>
+				<a href="<?php echo esc_url( 'https://wordpress.org/support/plugin/jat-site-shield/' ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Report a problem', 'jat-site-shield' ); ?></a>
+			</p>
+		</aside>
 		<?php
 	}
 
@@ -393,7 +494,7 @@ class Admin {
 		} else {
 			echo esc_html__( 'Nothing needs review.', 'jat-site-shield' );
 		}
-		echo '</p><p><a href="' . esc_url( admin_url( 'admin.php?page=' . self::SLUG . '-files' ) ) . '">' . esc_html__( 'See results →', 'jat-site-shield' ) . '</a></p>';
+		echo '</p><p><a href="' . esc_url( admin_url( 'admin.php?page=' . self::SLUG . '-files' ) ) . '">' . esc_html__( 'See results', 'jat-site-shield' ) . '</a></p>';
 	}
 
 	/**
@@ -458,7 +559,7 @@ class Admin {
 			</span>
 		</form>
 
-		<table class="widefat striped jatss-log">
+		<table class="widefat jatss-table jatss-log">
 			<thead><tr>
 				<th scope="col"><?php esc_html_e( 'When', 'jat-site-shield' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Severity', 'jat-site-shield' ); ?></th>
@@ -471,9 +572,9 @@ class Admin {
 				<tr><td colspan="5"><?php esc_html_e( 'No events match.', 'jat-site-shield' ); ?></td></tr>
 			<?php endif; ?>
 			<?php foreach ( $result['rows'] as $e ) : ?>
-				<tr>
+				<tr class="jatss-s-<?php echo esc_attr( $e['severity'] ); ?>">
 					<td class="jatss-nowrap" title="<?php echo esc_attr( $e['created_at'] . ' UTC' ); ?>"><?php echo esc_html( get_date_from_gmt( $e['created_at'], 'M j, H:i:s' ) ); ?></td>
-					<td><span class="jatss-pill jatss-pill-<?php echo esc_attr( $e['severity'] ); ?>"><?php echo esc_html( $e['severity'] ); ?></span></td>
+					<td><span class="jatss-sev jatss-sev-<?php echo esc_attr( $e['severity'] ); ?>"><?php echo esc_html( ucfirst( $e['severity'] ) ); ?></span></td>
 					<td><?php echo esc_html( $e['message'] ); ?><br /><code class="jatss-type"><?php echo esc_html( $e['event_type'] ); ?></code></td>
 					<td><?php echo '' !== $e['username'] ? esc_html( $e['username'] ) : '&mdash;'; ?></td>
 					<td><code><?php echo esc_html( $e['ip'] ); ?></code></td>
@@ -503,6 +604,7 @@ class Admin {
 			echo esc_html( sprintf( __( 'Events are kept for %d days.', 'jat-site-shield' ), Settings::get( 'log_retention_days' ) ) );
 			?>
 		</p>
+		<?php $this->about(); ?>
 		</div>
 		<?php
 	}
@@ -515,7 +617,7 @@ class Admin {
 		$state = File_Integrity::state();
 		$this->header( __( 'File integrity', 'jat-site-shield' ) );
 		?>
-		<div class="jatss-card">
+		<div class="jatss-panel">
 			<p><?php esc_html_e( 'Compares WordPress core and WordPress.org plugins with their official checksums, and looks for PHP files where they don\'t belong. Runs daily.', 'jat-site-shield' ); ?></p>
 			<?php if ( 'running' === $state['status'] ) : ?>
 				<?php /* translators: 1: done, 2: total */ ?>
@@ -577,6 +679,7 @@ class Admin {
 				</details>
 			<?php endif; ?>
 		<?php endif; ?>
+		<?php $this->about(); ?>
 		</div>
 		<?php
 	}
@@ -589,7 +692,7 @@ class Admin {
 	 */
 	private function findings_table( array $findings, $actions ) {
 		?>
-		<table class="widefat striped">
+		<table class="widefat jatss-table">
 			<thead><tr>
 				<th scope="col"><?php esc_html_e( 'Severity', 'jat-site-shield' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'File', 'jat-site-shield' ); ?></th>
@@ -599,8 +702,8 @@ class Admin {
 			</tr></thead>
 			<tbody>
 			<?php foreach ( array_slice( $findings, 0, 500 ) as $f ) : ?>
-				<tr>
-					<td><span class="jatss-pill jatss-pill-<?php echo esc_attr( $f['severity'] ); ?>"><?php echo esc_html( $f['severity'] ); ?></span></td>
+				<tr class="jatss-s-<?php echo esc_attr( $f['severity'] ); ?>">
+					<td><span class="jatss-sev jatss-sev-<?php echo esc_attr( $f['severity'] ); ?>"><?php echo esc_html( ucfirst( $f['severity'] ) ); ?></span></td>
 					<td><code><?php echo esc_html( $f['path'] ); ?></code><?php echo $f['detail'] ? '<br /><span class="description">' . esc_html( $f['detail'] ) . '</span>' : ''; ?></td>
 					<td><?php echo esc_html( File_Integrity::kind_label( $f['kind'], true ) ); ?></td>
 					<td class="jatss-nowrap"><?php echo $f['mtime'] ? esc_html( wp_date( 'M j Y, H:i', $f['mtime'] ) ) : '&mdash;'; ?></td>
@@ -620,13 +723,13 @@ class Admin {
 	public function page_settings() {
 		$s     = Settings::all();
 		$roles = wp_roles()->get_names();
-		$this->header( __( 'Site Shield settings', 'jat-site-shield' ) );
+		$this->header( __( 'Settings', 'jat-site-shield' ) );
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="jatss-settings">
 			<input type="hidden" name="action" value="jatss_save" />
 			<?php wp_nonce_field( 'jatss_save' ); ?>
 
-			<div class="jatss-card">
+			<div class="jatss-panel">
 				<h2><?php esc_html_e( 'Login protection', 'jat-site-shield' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<?php $this->toggle( 'login_protection', __( 'Lock out IPs after failed logins', 'jat-site-shield' ) ); ?>
@@ -662,7 +765,7 @@ class Admin {
 				</table>
 			</div>
 
-			<div class="jatss-card">
+			<div class="jatss-panel">
 				<h2><?php esc_html_e( 'Two-factor authentication', 'jat-site-shield' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<?php $this->toggle( 'twofa_enabled', __( 'Allow two-factor with an authenticator app', 'jat-site-shield' ) ); ?>
@@ -678,7 +781,7 @@ class Admin {
 				</table>
 			</div>
 
-			<div class="jatss-card">
+			<div class="jatss-panel">
 				<h2><?php esc_html_e( 'Hardening', 'jat-site-shield' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<?php $this->toggle( 'harden_xmlrpc', __( 'Block XML-RPC', 'jat-site-shield' ), Hardening::xmlrpc_needed() ? __( 'Jetpack is active and needs XML-RPC, so it stays on.', 'jat-site-shield' ) : __( 'Stops brute force and pingback abuse through xmlrpc.php.', 'jat-site-shield' ) ); ?>
@@ -706,7 +809,7 @@ class Admin {
 				</table>
 			</div>
 
-			<div class="jatss-card">
+			<div class="jatss-panel">
 				<h2><?php esc_html_e( 'Monitoring and alerts', 'jat-site-shield' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<?php $this->toggle( 'log_enabled', __( 'Keep an activity log', 'jat-site-shield' ) ); ?>
@@ -726,7 +829,7 @@ class Admin {
 				</table>
 			</div>
 
-			<div class="jatss-card">
+			<div class="jatss-panel">
 				<h2><?php esc_html_e( 'Network', 'jat-site-shield' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr><th scope="row"><label for="ip_source"><?php esc_html_e( 'Visitor IP comes from', 'jat-site-shield' ); ?></label></th><td>
@@ -750,6 +853,7 @@ class Admin {
 			<input type="hidden" name="action" value="jatss_test_uploads" />
 			<?php wp_nonce_field( 'jatss_test_uploads' ); ?>
 		</form>
+		<?php $this->about(); ?>
 		</div>
 		<?php
 	}

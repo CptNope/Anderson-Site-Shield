@@ -14,6 +14,8 @@ Lock WordPress down: login lockouts, two-factor codes, core hardening, an activi
 
 JAT Site Shield hardens a WordPress site and keeps a record of what happens on it. It's built for agencies and freelancers who look after many sites: one plugin, safe defaults, and no account or outside service to sign up for.
 
+JAT Site Shield is made by [Jeremy Anderson Tech](https://jeremyanderson.tech/), the "JAT" in the name. It pairs with [JAT Shell Scanner](https://wordpress.org/plugins/jat-shell-scanner/): Site Shield keeps attackers out, and the scanner checks whether one already got in.
+
 = Login protection =
 
 * Locks out an IP address after repeated failed logins, with a longer lockout for repeat offenders. IPv6 addresses are grouped by /64 so attackers can't rotate through them.
@@ -48,6 +50,14 @@ JAT Site Shield hardens a WordPress site and keeps a record of what happens on i
 * Themes, must-use plugins and plugins from elsewhere are compared with the previous scan instead.
 * Flags modified files, unknown PHP files, PHP files in uploads (hidden folders included) and stray PHP files in `wp-content`.
 * Runs in small steps in the background, so large sites don't time out.
+
+= Free, open source, no account =
+
+Everything in the plugin is free. There is no paid version, no sign-up and no tracking. Development happens in the open on [GitHub](https://github.com/CptNope/Anderson-Site-Shield).
+
+= Made by Jeremy Anderson Tech =
+
+[Jeremy Anderson Tech](https://jeremyanderson.tech/) builds, secures and looks after WordPress sites. If you'd rather have someone lock down or clean up a site for you, [book a call](https://jeremyanderson.tech/book-a-call/) or see the [services](https://jeremyanderson.tech/services/).
 
 = For developers =
 
@@ -105,6 +115,10 @@ No. Nothing heavy runs on page loads. The file integrity scan runs once a day in
 
 No. See "External services" below for the only outside requests it makes.
 
+= Where do I report a bug? =
+
+Use the [support forum](https://wordpress.org/support/plugin/jat-site-shield/). Security problems in the plugin itself: please report them privately through [GitHub](https://github.com/CptNope/Anderson-Site-Shield/security/advisories/new).
+
 == External services ==
 
 This plugin connects to WordPress.org for the file integrity scan. No personal data is sent.
@@ -122,7 +136,7 @@ The activity log stores IP addresses, browser user agents and usernames for secu
 
 == Screenshots ==
 
-1. The overview: a protection checklist, recent warnings, lockouts and the file integrity status.
+1. The overview: one verdict for the site, logins, hardening and files at a glance, and the protection checklist.
 2. Settings for login protection, two-factor, hardening, alerts and network.
 3. File integrity results with severity, the file, what's wrong and when it changed.
 4. Two-factor setup with a QR code for any authenticator app.
