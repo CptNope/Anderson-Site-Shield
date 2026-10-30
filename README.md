@@ -35,7 +35,7 @@ Updates come through the WordPress.org plugin directory like any other plugin.
 2. **Settings → Login protection:** turn on **Move the login page**, pick an address that isn't guessable, and save. Bookmark the new address and put it in your password manager.
 3. **Settings → Hardening:** click **Test it now** under "Block PHP in the uploads folder". If it says PHP still runs, the server ignores `.htaccess` (nginx); ask the host to block PHP in `wp-content/uploads`.
 4. **Settings → Monitoring:** put your agency's alert address in **Email alerts to**.
-5. If the site is behind Cloudflare, set **Visitor IP comes from** to Cloudflare (the plugin warns you if it notices Cloudflare). The header is only believed from Cloudflare's own addresses, so it can't be faked. For another proxy or load balancer, add its addresses under **Trusted proxies**.
+5. Put the site behind Cloudflare's free plan: see the **[free Cloudflare setup guide](docs/cloudflare.md)**. Site Shield detects Cloudflare by itself; **Settings → Network** shows which IP it sees for you.
 6. Run a file integrity scan and accept anything that's expected.
 
 ### Things to know

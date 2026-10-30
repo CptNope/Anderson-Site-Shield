@@ -79,6 +79,24 @@ class Alerts {
 	}
 
 	/**
+	 * Send a test email to the alert recipients.
+	 *
+	 * @return bool Whether WordPress accepted the email for sending.
+	 */
+	public static function send_test() {
+		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		return (bool) wp_mail(
+			self::recipients(),
+			sprintf( '[%s] Site Shield: test alert', $site ),
+			sprintf(
+				/* translators: %s: site address */
+				__( "This is a test from JAT Site Shield on %s.\n\nIf you got it, security alerts will reach you. If it went to spam, mark it as not spam.", 'jat-site-shield' ),
+				home_url( '/' )
+			)
+		);
+	}
+
+	/**
 	 * Send one email.
 	 *
 	 * @param string $subject Subject (site name is prefixed).

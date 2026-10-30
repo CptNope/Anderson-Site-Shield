@@ -16,6 +16,7 @@ use JATSiteShield\Modules\Two_Factor;
 use JATSiteShield\Plugin;
 use JATSiteShield\Request;
 use JATSiteShield\Settings;
+use JATSiteShield\Totp;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -40,6 +41,7 @@ class Admin {
 		add_action( 'admin_post_jatss_ack_all', array( $this, 'acknowledge_all' ) );
 		add_action( 'admin_post_jatss_export', array( $this, 'export_csv' ) );
 		add_action( 'admin_post_jatss_test_uploads', array( $this, 'test_uploads' ) );
+		add_action( 'admin_post_jatss_test_alert', array( $this, 'test_alert' ) );
 		add_filter( 'plugin_action_links_' . JATSS_BASENAME, array( $this, 'action_links' ) );
 		add_action( 'admin_notices', array( $this, 'notices' ) );
 		add_action( 'admin_init', array( $this, 'privacy_policy' ) );
@@ -124,7 +126,7 @@ class Admin {
 	 */
 	public function notices() {
 		if ( current_user_can( self::CAP ) && Request::proxy_misconfigured() ) {
-			echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Site Shield: this site is behind Cloudflare.', 'jat-site-shield' ) . '</strong> ' . esc_html__( 'Every visitor currently shares a Cloudflare IP, so a few wrong passwords can lock out everyone. Set "Visitor IP comes from" to Cloudflare in Site Shield settings.', 'jat-site-shield' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Site Shield can’t see real visitor IPs.', 'jat-site-shield' ) . '</strong> ' . esc_html__( 'Requests carry a Cloudflare visitor header but reach WordPress through a proxy Site Shield doesn’t trust, usually a web server on the same machine. Until that’s fixed, visitors may share one address and a few wrong passwords could lock out everyone. Add the proxy’s address under Trusted proxies in Site Shield settings.', 'jat-site-shield' ) . '</p></div>';
 		}
 		if ( JATSS_SAFE_MODE && current_user_can( self::CAP ) ) {
 			echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Site Shield safe mode is on.', 'jat-site-shield' ) . '</strong> ' . esc_html__( 'The custom login URL, two-factor and login lockouts are paused. Remove JATSS_SAFE_MODE from wp-config.php when you are back in.', 'jat-site-shield' ) . '</p></div>';
@@ -211,6 +213,17 @@ class Admin {
 			'ok'    => 0 === strpos( home_url(), 'https://' ),
 			'note'  => 0 === strpos( home_url(), 'https://' ) ? __( 'Site address uses HTTPS.', 'jat-site-shield' ) : __( 'Site address is not HTTPS; logins travel unencrypted.', 'jat-site-shield' ),
 		);
+		// Visitors use HTTPS but WordPress sees plain HTTP: almost always Cloudflare's
+		// "Flexible" mode or a proxy that doesn't pass the scheme on.
+		if ( 0 === strpos( home_url(), 'https://' ) && ! is_ssl() && ! ( defined( 'WP_CLI' ) && WP_CLI ) && ! wp_doing_cron() ) {
+			$checks[] = array(
+				'label' => __( 'HTTPS all the way to the server', 'jat-site-shield' ),
+				'ok'    => false,
+				'note'  => Request::via_cloudflare()
+					? __( 'Cloudflare is connecting to your server over plain HTTP (Flexible mode). Set Cloudflare SSL/TLS to Full (strict).', 'jat-site-shield' )
+					: __( 'WordPress sees this page as plain HTTP although the site address is HTTPS. A proxy is probably not passing the HTTPS scheme on; ask your host.', 'jat-site-shield' ),
+			);
+		}
 		$checks[]    = array(
 			'label' => __( 'Activity log and alerts', 'jat-site-shield' ),
 			'ok'    => $s['log_enabled'],
@@ -225,7 +238,27 @@ class Admin {
 			'note'  => ! $s['fim_enabled'] ? __( 'Off.', 'jat-site-shield' ) : ( $last
 				/* translators: %s: time ago */
 				? sprintf( __( 'Last scan %s ago.', 'jat-site-shield' ), human_time_diff( $last['finished'] ) )
-				: __( 'No scan yet.', 'jat-site-shield' ) ),
+				: __( 'No scan yet.', 'jat-site-shield' ) ) . ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ? ' ' . __( 'WP-Cron is turned off on this site, so make sure a server cron job runs wp-cron.php.', 'jat-site-shield' ) : '' ),
+		);
+
+		$key_ok   = defined( 'JATSS_SECRET_KEY' ) || is_readable( Totp::key_file() );
+		$checks[] = array(
+			'label' => __( 'Two-factor key kept outside the database', 'jat-site-shield' ),
+			'ok'    => $key_ok,
+			'note'  => defined( 'JATSS_SECRET_KEY' )
+				? __( 'Set with JATSS_SECRET_KEY in wp-config.php.', 'jat-site-shield' )
+				: ( $key_ok
+					? __( 'Stored in wp-content/jatss-key.php. Keep it in backups and migrations.', 'jat-site-shield' )
+					: __( 'wp-content isn’t writable, so secrets fall back to the WordPress salts and break if they’re changed. Add JATSS_SECRET_KEY to wp-config.php.', 'jat-site-shield' ) ),
+		);
+
+		$checks[] = array(
+			'label'    => __( 'Cloudflare in front of the site', 'jat-site-shield' ),
+			'ok'       => Request::via_cloudflare(),
+			'optional' => true,
+			'note'     => Request::via_cloudflare()
+				? __( 'Requests come through Cloudflare and real visitor IPs are used.', 'jat-site-shield' )
+				: __( 'Optional. Cloudflare’s free plan blocks attacks before they reach your server. See the setup guide linked in Settings.', 'jat-site-shield' ),
 		);
 
 		$debug    = defined( 'WP_DEBUG_DISPLAY' ) ? WP_DEBUG_DISPLAY : true;
@@ -271,8 +304,9 @@ class Admin {
 		update_user_meta( get_current_user_id(), 'jatss_seen', time() );
 		delete_transient( 'jatss_crit_' . get_current_user_id() );
 
-		$checks = self::checks();
-		$ok     = count( array_filter( wp_list_pluck( $checks, 'ok' ) ) );
+		$all_checks = self::checks();
+		$checks     = array_values( array_filter( $all_checks, static function ( $c ) { return empty( $c['optional'] ); } ) );
+		$ok         = count( array_filter( wp_list_pluck( $checks, 'ok' ) ) );
 		$day    = Event_Log::counts_since( gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
 		$week   = Event_Log::counts_since( gmdate( 'Y-m-d H:i:s', time() - WEEK_IN_SECONDS ) );
 		$recent = Event_Log::query(
@@ -366,10 +400,11 @@ class Admin {
 			<div class="jatss-panel">
 				<h2><?php esc_html_e( 'Protection checklist', 'jat-site-shield' ); ?></h2>
 				<ul class="jatss-checks">
-					<?php foreach ( $checks as $c ) : ?>
-						<li class="<?php echo $c['ok'] ? 'is-ok' : 'is-off'; ?>">
-							<span class="dashicons <?php echo $c['ok'] ? 'dashicons-yes-alt' : 'dashicons-warning'; ?>" aria-hidden="true"></span>
-							<div><strong><?php echo esc_html( $c['label'] ); ?></strong><span class="screen-reader-text"> — <?php echo $c['ok'] ? esc_html__( 'on', 'jat-site-shield' ) : esc_html__( 'needs attention', 'jat-site-shield' ); ?></span><br /><span class="description"><?php echo esc_html( $c['note'] ); ?></span></div>
+					<?php foreach ( $all_checks as $c ) : ?>
+						<?php $tone = $c['ok'] ? 'is-ok' : ( empty( $c['optional'] ) ? 'is-off' : 'is-info' ); ?>
+						<li class="<?php echo esc_attr( $tone ); ?>">
+							<span class="dashicons <?php echo esc_attr( 'is-ok' === $tone ? 'dashicons-yes-alt' : ( 'is-off' === $tone ? 'dashicons-warning' : 'dashicons-info-outline' ) ); ?>" aria-hidden="true"></span>
+							<div><strong><?php echo esc_html( $c['label'] ); ?></strong><span class="screen-reader-text"> — <?php echo 'is-ok' === $tone ? esc_html__( 'on', 'jat-site-shield' ) : ( 'is-off' === $tone ? esc_html__( 'needs attention', 'jat-site-shield' ) : esc_html__( 'optional', 'jat-site-shield' ) ); ?></span><br /><span class="description"><?php echo esc_html( $c['note'] ); ?></span></div>
 						</li>
 					<?php endforeach; ?>
 				</ul>
@@ -817,6 +852,7 @@ class Admin {
 					<tr><th scope="row"><label for="alert_emails"><?php esc_html_e( 'Email alerts to', 'jat-site-shield' ); ?></label></th><td>
 						<input type="text" name="alert_emails" id="alert_emails" class="large-text" value="<?php echo esc_attr( $s['alert_emails'] ); ?>" placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>" />
 						<p class="description"><?php esc_html_e( 'Comma-separated. Empty sends to the site admin email. At most 10 alerts an hour.', 'jat-site-shield' ); ?></p>
+						<p><button type="submit" class="button" form="jatss-test-alert"><?php esc_html_e( 'Send a test alert', 'jat-site-shield' ); ?></button></p>
 					</td></tr>
 					<tr><th scope="row"><label for="alert_min_severity"><?php esc_html_e( 'Alert on', 'jat-site-shield' ); ?></label></th><td>
 						<select name="alert_min_severity" id="alert_min_severity">
@@ -838,16 +874,34 @@ class Admin {
 								<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $s['ip_source'], $key ); ?>><?php echo esc_html( $label ); ?></option>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php esc_html_e( 'Only change this if the site is behind Cloudflare or a proxy and every visitor shows the same IP. The header is only believed when the request really comes from Cloudflare, a private network, or a trusted proxy below.', 'jat-site-shield' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Automatic works for most sites, including sites behind Cloudflare. Only change it if every visitor shows the same IP below. A header is only believed when the request really comes from Cloudflare, a private network or a trusted proxy.', 'jat-site-shield' ); ?></p>
+					</td></tr>
+					<tr><th scope="row"><?php esc_html_e( 'This request', 'jat-site-shield' ); ?></th><td>
+						<table class="widefat jatss-table jatss-ipcheck">
+							<tbody>
+							<?php foreach ( Request::diagnostics() as $key => $value ) : ?>
+								<tr><td><code><?php echo esc_html( $key ); ?></code></td><td><?php echo '' !== $value ? '<code>' . esc_html( $value ) . '</code>' : '&mdash;'; ?></td></tr>
+							<?php endforeach; ?>
+							<tr class="jatss-s-ok"><td><strong><?php esc_html_e( 'Site Shield uses', 'jat-site-shield' ); ?></strong></td><td><code><?php echo esc_html( Request::ip() ); ?></code><?php echo Request::via_cloudflare() ? ' ' . esc_html__( '(through Cloudflare)', 'jat-site-shield' ) : ''; ?></td></tr>
+							</tbody>
+						</table>
+						<p class="description"><?php esc_html_e( 'The last row should be your own public IP. If it shows a private address such as 127.0.0.1 or 10.x, add that address under Trusted proxies.', 'jat-site-shield' ); ?></p>
 					</td></tr>
 					<tr><th scope="row"><label for="trusted_proxies"><?php esc_html_e( 'Trusted proxies', 'jat-site-shield' ); ?></label></th><td>
 						<textarea name="trusted_proxies" id="trusted_proxies" rows="2" class="large-text code" placeholder="203.0.113.0/24"><?php echo esc_textarea( $s['trusted_proxies'] ); ?></textarea>
-						<p class="description"><?php esc_html_e( 'Public IPs or ranges of your own load balancer or proxy (Sucuri, a CDN). Leave empty for Cloudflare or a proxy on the same server.', 'jat-site-shield' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Addresses of proxies between visitors and WordPress that you control: a load balancer, Sucuri, or a web server on the same machine (127.0.0.1) that passes Cloudflare’s header on. Cloudflare itself needs no entry.', 'jat-site-shield' ); ?></p>
+					</td></tr>
+					<tr><th scope="row"><?php esc_html_e( 'Cloudflare', 'jat-site-shield' ); ?></th><td>
+						<p><?php esc_html_e( 'Cloudflare’s free plan blocks attacks before they reach your server and works alongside Site Shield.', 'jat-site-shield' ); ?> <a href="<?php echo esc_url( 'https://github.com/CptNope/Anderson-Site-Shield/blob/main/docs/cloudflare.md' ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Free Cloudflare setup guide', 'jat-site-shield' ); ?></a></p>
 					</td></tr>
 				</table>
 			</div>
 
 			<?php submit_button( __( 'Save settings', 'jat-site-shield' ) ); ?>
+		</form>
+		<form id="jatss-test-alert" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="jatss_test_alert" />
+			<?php wp_nonce_field( 'jatss_test_alert' ); ?>
 		</form>
 		<form id="jatss-test-uploads" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="jatss_test_uploads" />
@@ -1043,6 +1097,22 @@ class Admin {
 			'unknown'  => __( 'The site could not reach itself to run the test (loopback request failed).', 'jat-site-shield' ),
 		);
 		$this->back( '-settings', $msgs[ $result ], 'executes' === $result );
+	}
+
+	/**
+	 * Send a test alert email.
+	 */
+	public function test_alert() {
+		$this->guard( 'jatss_test_alert' );
+		$ok = \JATSiteShield\Alerts::send_test();
+		$this->back(
+			'-settings',
+			$ok
+				/* translators: %s: email addresses */
+				? sprintf( __( 'Test alert sent to %s. If it doesn’t arrive within a few minutes, check spam, then set up an SMTP plugin so this site can send email reliably.', 'jat-site-shield' ), implode( ', ', \JATSiteShield\Alerts::recipients() ) )
+				: __( 'WordPress couldn’t send the email. This site can’t send mail yet; set up an SMTP plugin, or alerts won’t reach you.', 'jat-site-shield' ),
+			! $ok
+		);
 	}
 
 	/**

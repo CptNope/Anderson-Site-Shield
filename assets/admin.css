@@ -101,6 +101,7 @@
 .jatss-checks .is-ok .dashicons { color: var(--jatss-ok); }
 .jatss-checks .is-off { border-left-color: var(--jatss-warn); background: var(--jatss-warn-bg); }
 .jatss-checks .is-off .dashicons { color: var(--jatss-warn); }
+.jatss-checks .is-info .dashicons { color: var(--jatss-muted); }
 .jatss-events .jatss-s-critical { border-left-color: var(--jatss-bad); }
 .jatss-events .jatss-s-warning { border-left-color: var(--jatss-warn); }
 
@@ -120,6 +121,9 @@
 .jatss-table tr.jatss-s-critical { box-shadow: inset 4px 0 0 var(--jatss-bad); }
 .jatss-table tr.jatss-s-warning { box-shadow: inset 4px 0 0 var(--jatss-warn); }
 .jatss-table tr.jatss-s-notice { box-shadow: inset 4px 0 0 #8c8f94; }
+.jatss-table tr.jatss-s-ok { box-shadow: inset 4px 0 0 var(--jatss-ok); background: var(--jatss-ok-bg); }
+.jatss-ipcheck { max-width: 640px; }
+.jatss-ipcheck td:first-child { width: 220px; }
 .jatss-table td:first-child { padding-left: 16px; }
 .jatss-type { display: block; margin-top: 4px; font-size: 11px; color: var(--jatss-muted); background: transparent; padding: 0; }
 

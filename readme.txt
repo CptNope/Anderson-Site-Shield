@@ -21,7 +21,7 @@ JAT Site Shield is made by [Jeremy Anderson Tech](https://jeremyanderson.tech/),
 * Locks out an IP address after repeated failed logins, with a longer lockout for repeat offenders. IPv6 addresses are grouped by /64 so attackers can't rotate through them.
 * Login and password-reset forms give the same answer whether or not an account exists, so they can't be used to find usernames.
 * Optional custom login address. `wp-login.php` and `/wp-admin` return "Not Found" to logged-out visitors.
-* An allowlist for your office IP, and a warning if the site is behind Cloudflare but every visitor shows Cloudflare's IP.
+* An allowlist for your office IP. Works behind Cloudflare out of the box, and shows exactly which IP it sees for you.
 
 = Two-factor authentication =
 
@@ -36,7 +36,7 @@ JAT Site Shield is made by [Jeremy Anderson Tech](https://jeremyanderson.tech/),
 * Blocks username scanning through `?author=`, the REST API users endpoint, oEmbed and the users sitemap.
 * Turns off the theme and plugin file editor.
 * Blocks PHP in the uploads folder, with a one-click test to confirm it works on your server.
-* Sends security headers and hides the WordPress version. HSTS and turning off application passwords are optional.
+* Sends security headers and hides the WordPress version (files still refresh after updates). HSTS and turning off application passwords are optional.
 
 = Activity log and alerts =
 
@@ -75,7 +75,7 @@ Recommended next steps:
 * **Settings → Login protection:** turn on **Move the login page**, choose an address that isn't easy to guess, and bookmark it.
 * **Settings → Hardening:** click **Test it now** under "Block PHP in the uploads folder".
 * **Settings → Monitoring and alerts:** add the address that should receive alerts.
-* If the site is behind Cloudflare, set **Visitor IP comes from** to Cloudflare.
+* Optional: put the site behind Cloudflare's free plan with the [free Cloudflare setup guide](https://github.com/CptNope/Anderson-Site-Shield/blob/main/docs/cloudflare.md).
 
 == Frequently Asked Questions ==
 
@@ -95,9 +95,29 @@ It holds the key that encrypts two-factor secrets, created when you activate the
 
 Your server is probably nginx, which ignores `.htaccess` files. Ask your host to block PHP files in `wp-content/uploads`.
 
-= My site is behind Cloudflare or a proxy. =
+= Does it work with Cloudflare? =
 
-Set **Visitor IP comes from** to Cloudflare, or to the header your proxy uses. The header is only trusted when the request really comes from Cloudflare, a private network or an address you list under **Trusted proxies**, so it can't be faked.
+Yes. It detects Cloudflare by itself and reads real visitor IPs from Cloudflare's header, but only when the request really comes from Cloudflare's network, so the header can't be faked. **Settings → Network** shows which IP it sees for you. For a step-by-step free-plan setup (SSL, firewall rules, rate limiting, locking your server to Cloudflare), see the [free Cloudflare setup guide](https://github.com/CptNope/Anderson-Site-Shield/blob/main/docs/cloudflare.md).
+
+= My site is behind another proxy or load balancer. =
+
+If **Settings → Network** shows a private address such as 127.0.0.1 for you, add that address under **Trusted proxies**. For other proxies, choose the header they use under **Visitor IP comes from** and list their addresses under **Trusted proxies**.
+
+= A single sign-on or "log in with Google" plugin stops working for administrators. =
+
+For users with two-factor turned on, Site Shield ends any login session that didn't go through its two-factor step, so other plugins can't skip it. If you trust a sign-on plugin to do its own second factor, allow it with the `jatss_session_requires_2fa` filter. Logins through the REST API (for example JWT plugins) aren't supported for those users; use application passwords instead.
+
+= The site runs on several servers. =
+
+Put `define( 'JATSS_SECRET_KEY', '...at least 32 random characters...' );` in `wp-config.php` on every server, before anyone sets up two-factor, so they all share one key. Lockouts are stored as WordPress transients, so use a shared object cache (Redis or Memcached) if you want lockouts to apply across servers.
+
+= The file check never seems to run. =
+
+It runs on WP-Cron, which needs visitors to trigger it. On quiet sites, or when `DISABLE_WP_CRON` is set, add a server cron job that loads `wp-cron.php` every few minutes. The overview warns you if the last scan is more than three days old.
+
+= Alerts don't arrive. =
+
+Click **Send a test alert** under **Settings → Monitoring and alerts**. If it doesn't arrive, the site can't send email reliably; set up an SMTP plugin.
 
 = Visitors on my membership site get "Not Found" when they log in. =
 

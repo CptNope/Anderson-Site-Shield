@@ -123,6 +123,20 @@ class Two_Factor {
 			return;
 		}
 
+		/**
+		 * Filters whether a login session without the two-factor step is ended.
+		 *
+		 * Return false for logins made by a single sign-on plugin you trust to do
+		 * its own second factor (for example Google Workspace or Microsoft Entra SSO).
+		 *
+		 * @param bool  $required Default true.
+		 * @param int   $user_id  User.
+		 * @param array $session  The session's stored data.
+		 */
+		if ( ! apply_filters( 'jatss_session_requires_2fa', true, $user_id, is_array( $session ) ? $session : array() ) ) {
+			return;
+		}
+
 		$manager->destroy( $token );
 		wp_clear_auth_cookie();
 		wp_set_current_user( 0 );

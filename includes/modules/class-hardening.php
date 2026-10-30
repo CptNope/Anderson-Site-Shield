@@ -173,17 +173,20 @@ class Hardening {
 	}
 
 	/**
-	 * Remove ?ver= when it equals the WordPress version (it reveals it).
+	 * Replace ?ver= with a hash when it equals the WordPress version (the number reveals it).
 	 *
 	 * @param string $src Asset URL.
 	 * @return string
 	 */
 	public function strip_core_version( $src ) {
 		global $wp_version;
-		if ( is_string( $src ) && false !== strpos( $src, 'ver=' . $wp_version ) ) {
-			$src = remove_query_arg( 'ver', $src );
+		if ( ! is_string( $src ) || false === strpos( $src, 'ver=' . $wp_version ) ) {
+			return $src;
 		}
-		return $src;
+		// Swap the version for a hash of it instead of removing it, so browsers and
+		// Cloudflare still fetch fresh files after a WordPress update.
+		$hash = substr( wp_hash( 'jatss-ver|' . $wp_version ), 0, 8 );
+		return add_query_arg( 'ver', $hash, remove_query_arg( 'ver', $src ) );
 	}
 
 	/**
