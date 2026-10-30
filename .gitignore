@@ -1,4 +1,4 @@
 dist/
 build/
 .DS_Store
-vendor/
+/vendor/

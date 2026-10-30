@@ -2,7 +2,7 @@
 
 | You want to… | Go here |
 |---|---|
-| Ask how something works, or get help with a problem on your site | The [WordPress.org support forum](https://wordpress.org/support/plugin/jat-site-shield/) |
+| Ask how something works, or get help with a problem on your site | The [WordPress.org support forum](https://wordpress.org/support/plugin/jat-site-shield/), once the plugin is live in the directory. Until then, open a [bug report](https://github.com/CptNope/JAT-Site-Shield/issues/new?template=bug_report.yml) and describe your question. |
 | Report a bug in the plugin | A [bug report](https://github.com/CptNope/JAT-Site-Shield/issues/new?template=bug_report.yml) on GitHub |
 | Suggest a feature | A [feature request](https://github.com/CptNope/JAT-Site-Shield/issues/new?template=feature_request.yml), after checking the [roadmap](ROADMAP.md) |
 | Report a security problem | Privately, following [SECURITY.md](SECURITY.md). Never in public. |

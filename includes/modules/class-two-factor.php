@@ -667,6 +667,9 @@ class Two_Factor {
 	/**
 	 * Users who still have to enroll can't use the REST API with their cookie.
 	 *
+	 * Reading their own profile stays allowed, because the admin screens load
+	 * the user's preferences from it on every page.
+	 *
 	 * @param mixed $result Earlier result.
 	 * @return mixed
 	 */
@@ -675,6 +678,13 @@ class Two_Factor {
 			return $result;
 		}
 		if ( self::pending_enrollment() ) {
+			$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+			$route  = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? untrailingslashit( (string) $GLOBALS['wp']->query_vars['rest_route'] ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only checks that no method override is present.
+			$override = isset( $_GET['_method'] ) || isset( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] );
+			if ( 'GET' === $method && ! $override && '/wp/v2/users/me' === $route ) {
+				return $result;
+			}
 			return new \WP_Error( 'jatss_2fa_setup', __( 'Set up two-factor authentication before using the API.', 'jat-site-shield' ), array( 'status' => 403 ) );
 		}
 		return $result;

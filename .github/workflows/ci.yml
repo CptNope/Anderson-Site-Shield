@@ -20,6 +20,35 @@ jobs:
       - name: PHP syntax check
         run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
 
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the plugin zip
+        run: bash bin/build-zip.sh
+      - name: Check the zip has every file the plugin needs
+        run: |
+          set -e
+          LIST=$(unzip -Z1 dist/jat-site-shield.zip)
+          # Every file the PHP code loads, plus assets enqueued by URL.
+          for f in jat-site-shield.php uninstall.php readme.txt LICENSE \
+                   assets/admin.css assets/two-factor.js \
+                   assets/vendor/qrcode.js assets/vendor/qrcode-LICENSE.txt; do
+            echo "$LIST" | grep -qx "jat-site-shield/$f" || { echo "Missing from zip: $f"; exit 1; }
+          done
+          for f in $(git ls-files 'includes/*.php'); do
+            echo "$LIST" | grep -qx "jat-site-shield/$f" || { echo "Missing from zip: $f"; exit 1; }
+          done
+          # Assets referenced in PHP must exist in the zip.
+          for f in $(grep -rhoE "assets/[A-Za-z0-9_./-]+\.(js|css)" includes | sort -u); do
+            echo "$LIST" | grep -qx "jat-site-shield/$f" || { echo "Referenced but missing from zip: $f"; exit 1; }
+          done
+          # Development files must not ship.
+          if echo "$LIST" | grep -E "/(README\.md|ROADMAP\.md|CHANGELOG\.md|CONTRIBUTING\.md|\.github|docs|bin|\.wordpress-org)(/|$)"; then
+            echo "Development files found in zip"; exit 1
+          fi
+          echo "Zip contents OK"
+
   wpcs:
     runs-on: ubuntu-latest
     steps:
