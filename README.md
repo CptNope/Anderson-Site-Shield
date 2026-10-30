@@ -1,4 +1,4 @@
-# Anderson Site Shield
+# JAT Site Shield
 
 A WordPress security plugin that locks a site down and keeps a record of what happens on it. It's built for agencies that run many client sites: one plugin, sensible defaults, and nothing that needs an outside service.
 
@@ -23,12 +23,11 @@ A WordPress security plugin that locks a site down and keeps a record of what ha
 
 ## Install
 
-1. Download `anderson-site-shield.zip` from the [latest release](https://github.com/CptNope/Anderson-Site-Shield/releases/latest).
-2. In WordPress, go to **Plugins → Add New → Upload Plugin**, choose the zip and activate it.
-3. You'll be asked to set up two-factor for your administrator account. Scan the QR code, enter the code, and save your backup codes in your password manager.
-4. Open **Site Shield → Overview** and work through anything on the checklist that isn't green.
+1. In WordPress, go to **Plugins → Add New**, search for "JAT Site Shield", then install and activate it. (Or download `jat-site-shield.zip` from the [latest release](https://github.com/CptNope/Anderson-Site-Shield/releases/latest) and use **Upload Plugin**.)
+2. You'll be asked to set up two-factor for your administrator account. Scan the QR code, enter the code, and save your backup codes in your password manager.
+3. Open **Site Shield → Overview** and work through anything on the checklist that isn't green.
 
-Updates come from GitHub releases and show up on the Plugins screen like any other plugin update. Only release files from this repository are accepted.
+Updates come through the WordPress.org plugin directory like any other plugin.
 
 ### Recommended setup for a client site
 
@@ -41,30 +40,29 @@ Updates come from GitHub releases and show up on the Plugins screen like any oth
 
 ### Things to know
 
-- **The two-factor key.** Secrets are encrypted with `wp-content/anshield-key.php`, created on activation. Include it in backups and migrations. If it's lost, every user's two-factor must be reset (`wp site-shield reset-2fa <user>`). To manage the key yourself, put `define( 'ANSHIELD_SECRET_KEY', '…64 random characters…' );` in `wp-config.php` before anyone enrolls.
+- **The two-factor key.** Secrets are encrypted with `wp-content/jatss-key.php`, created on activation. Include it in backups and migrations. If it's lost, every user's two-factor must be reset (`wp jat-shield reset-2fa <user>`). To manage the key yourself, put `define( 'JATSS_SECRET_KEY', '…64 random characters…' );` in `wp-config.php` before anyone enrolls.
 - **Custom login address and visitor links.** The new address is only shown to people already on the login page or logged in. Login links a theme shows to logged-out visitors ("Log in to reply", a Meta widget) keep pointing at `wp-login.php` and return "Not Found". If a site's visitors need to log in (a membership site), link to the new address yourself, or leave this feature off.
-- **Updates aren't signed yet.** Downloads are only accepted from this repository's releases, but anyone who controls the GitHub account could ship an update. Protect the account with two-factor and a hardware key.
 
 ## If you get locked out
 
 | Problem | Fix |
 |---|---|
-| Forgot the custom login address | Run `wp site-shield login-url`, or see the next row. |
-| Lost your phone and backup codes | Another administrator can reset your two-factor from your profile, or run `wp site-shield reset-2fa <user>`. |
-| Locked out of everything | Add `define( 'ANSHIELD_SAFE_MODE', true );` to `wp-config.php`. This pauses the custom login address, two-factor and lockouts (logging and hardening stay on). Remove it once you're back in. |
-| Your own IP is locked out | Wait for the lockout to end, run `wp site-shield unlock <ip>`, or add your office IP to **Never lock out**. |
-| Nothing else works | Rename `wp-content/plugins/anderson-site-shield` over SFTP. That deactivates it. |
+| Forgot the custom login address | Run `wp jat-shield login-url`, or see the next row. |
+| Lost your phone and backup codes | Another administrator can reset your two-factor from your profile, or run `wp jat-shield reset-2fa <user>`. |
+| Locked out of everything | Add `define( 'JATSS_SAFE_MODE', true );` to `wp-config.php`. This pauses the custom login address, two-factor and lockouts (logging and hardening stay on). Remove it once you're back in. |
+| Your own IP is locked out | Wait for the lockout to end, run `wp jat-shield unlock <ip>`, or add your office IP to **Never lock out**. |
+| Nothing else works | Rename `wp-content/plugins/jat-site-shield` over SFTP. That deactivates it. |
 
 ## WP-CLI
 
 ```bash
-wp site-shield status              # checklist of protections
-wp site-shield login-url           # print the custom login address
-wp site-shield lockouts            # list locked-out IPs
-wp site-shield unlock <ip|all>     # lift lockouts
-wp site-shield reset-2fa <user>    # remove a user's two-factor
-wp site-shield scan [--all]        # run a file integrity scan now
-wp site-shield log [--severity=warning] [--count=50] [--format=json]
+wp jat-shield status              # checklist of protections
+wp jat-shield login-url           # print the custom login address
+wp jat-shield lockouts            # list locked-out IPs
+wp jat-shield unlock <ip|all>     # lift lockouts
+wp jat-shield reset-2fa <user>    # remove a user's two-factor
+wp jat-shield scan [--all]        # run a file integrity scan now
+wp jat-shield log [--severity=warning] [--count=50] [--format=json]
 ```
 
 ## How the pieces fit
@@ -73,7 +71,7 @@ wp site-shield log [--severity=warning] [--count=50] [--format=json]
 flowchart LR
     subgraph WP[WordPress request]
       A[Login form] -->|password OK| B{Two-factor enrolled?}
-      B -- yes --> C[Code step<br/>?action=anshield_2fa]
+      B -- yes --> C[Code step<br/>?action=jatss_2fa]
       B -- no --> D[Logged in]
       C -->|valid code| D
     end
@@ -85,7 +83,7 @@ flowchart LR
     E -.later.-> S[SOC / SIEM sender]
 ```
 
-Every event goes through one function, `AndersonSiteShield\Event_Log::log()`, which fires the `anshield_event_logged` action. Sending events to a central SOC/SIEM later means hooking that action; nothing else has to change.
+Every event goes through one function, `JATSiteShield\Event_Log::log()`, which fires the `jatss_event_logged` action. Sending events to a central SOC/SIEM later means hooking that action; nothing else has to change.
 
 ### Event severities
 
@@ -100,8 +98,8 @@ Every event goes through one function, `AndersonSiteShield\Event_Log::log()`, wh
 
 | Hook | Type | Use |
 |---|---|---|
-| `anshield_event_logged` | action | Receives every stored event as an array. |
-| `anshield_xmlrpc_needed` | filter | Return `true` to keep XML-RPC on for a plugin that needs it. |
+| `jatss_event_logged` | action | Receives every stored event as an array. |
+| `jatss_xmlrpc_needed` | filter | Return `true` to keep XML-RPC on for a plugin that needs it. |
 
 ## Screenshots
 
@@ -113,10 +111,10 @@ Every event goes through one function, `AndersonSiteShield\Event_Log::log()`, wh
 ## Development
 
 ```bash
-bash bin/build-zip.sh   # builds dist/anderson-site-shield.zip
+bash bin/build-zip.sh   # builds dist/jat-site-shield.zip
 ```
 
-Pushing a tag like `v1.0.1` builds the zip and publishes a GitHub release, which client sites then pick up as an update. The tag must match the version in `anderson-site-shield.php`.
+To release, bump the version in `jat-site-shield.php` (header and `JATSS_VERSION`) and the `Stable tag` in `readme.txt`, add a changelog entry, then push a tag like `v1.0.1`. The release workflow builds the zip, attaches it to a GitHub release and, once `SVN_USERNAME` and `SVN_PASSWORD` secrets are set, publishes it to WordPress.org with the directory assets in `.wordpress-org/`.
 
 ## License
 

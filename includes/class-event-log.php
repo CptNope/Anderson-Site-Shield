@@ -2,10 +2,10 @@
 /**
  * Event log storage.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield;
+namespace JATSiteShield;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * Stores security events in their own table.
  *
  * Every event goes through Event_Log::log(), which fires the
- * `anshield_event_logged` action. A future SOC/SIEM sender hooks there.
+ * `jatss_event_logged` action. A future SOC/SIEM sender hooks there.
  */
 class Event_Log {
 
@@ -28,7 +28,7 @@ class Event_Log {
 	 */
 	public static function table() {
 		global $wpdb;
-		return $wpdb->prefix . 'anshield_events';
+		return $wpdb->prefix . 'jatss_events';
 	}
 
 	/**
@@ -59,7 +59,7 @@ class Event_Log {
 			KEY ip (ip)
 		) {$charset};";
 		dbDelta( $sql );
-		update_option( 'anshield_db_version', self::DB_VERSION, false );
+		update_option( 'jatss_db_version', self::DB_VERSION, false );
 	}
 
 	/**
@@ -83,7 +83,7 @@ class Event_Log {
 
 		// Cap low-severity rows so a flood of probes can't fill the database.
 		if ( 'info' === $severity ) {
-			$bucket = 'anshield_info_' . gmdate( 'YmdH' );
+			$bucket = 'jatss_info_' . gmdate( 'YmdH' );
 			$count  = (int) get_transient( $bucket );
 			set_transient( $bucket, $count + 1, HOUR_IN_SECONDS );
 			if ( $count >= 1000 ) {
@@ -122,7 +122,7 @@ class Event_Log {
 		 *
 		 * @param array $event Stored row.
 		 */
-		do_action( 'anshield_event_logged', $event );
+		do_action( 'jatss_event_logged', $event );
 
 		return $event['id'];
 	}
@@ -138,7 +138,7 @@ class Event_Log {
 	 * @return int|false
 	 */
 	public static function log_throttled( $type, $severity, $message, $period = HOUR_IN_SECONDS ) {
-		$key   = 'anshield_t_' . md5( $type . '|' . Request::ip() );
+		$key   = 'jatss_t_' . md5( $type . '|' . Request::ip() );
 		$count = get_transient( $key );
 		if ( false !== $count ) {
 			set_transient( $key, (int) $count + 1, $period );
@@ -192,11 +192,10 @@ class Event_Log {
 		}
 
 		$where_sql = implode( ' AND ', $where );
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery -- Only fixed fragments are interpolated; values are placeholders.
-		$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
-		$total     = (int) ( $params ? $wpdb->get_var( $wpdb->prepare( $count_sql, $params ) ) : $wpdb->get_var( $count_sql ) );
-		$rows_sql  = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY id DESC LIMIT %d OFFSET %d";
-		$rows      = $wpdb->get_results( $wpdb->prepare( $rows_sql, array_merge( $params, array( $per_page, ( $page - 1 ) * $per_page ) ) ), ARRAY_A );
+		// $where_sql is built only from the fixed fragments above; every value is a placeholder.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Replacements are passed as one array.
+		$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE ' . $where_sql, array_merge( array( $table ), $params ) ) );
+		$rows  = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE ' . $where_sql . ' ORDER BY id DESC LIMIT %d OFFSET %d', array_merge( array( $table ), $params, array( $per_page, ( $page - 1 ) * $per_page ) ) ), ARRAY_A );
 		// phpcs:enable
 
 		return array(
@@ -214,8 +213,8 @@ class Event_Log {
 	public static function counts_since( $since ) {
 		global $wpdb;
 		$table = self::table();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT severity, COUNT(*) AS n FROM {$table} WHERE created_at >= %s GROUP BY severity", $since ), ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT severity, COUNT(*) AS n FROM %i WHERE created_at >= %s GROUP BY severity', $table, $since ), ARRAY_A );
 		$out  = array_fill_keys( self::SEVERITIES, 0 );
 		foreach ( (array) $rows as $row ) {
 			if ( isset( $out[ $row['severity'] ] ) ) {
@@ -235,16 +234,7 @@ class Event_Log {
 		$days   = (int) Settings::get( 'log_retention_days' );
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
 		$table  = self::table();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
-		return (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", $cutoff ) );
-	}
-
-	/**
-	 * Drop the table (uninstall).
-	 */
-	public static function uninstall() {
-		global $wpdb;
-		$table = self::table();
-		$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE created_at < %s', $table, $cutoff ) );
 	}
 }

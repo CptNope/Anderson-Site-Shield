@@ -2,10 +2,10 @@
 /**
  * Email alerts for serious events.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield;
+namespace JATSiteShield;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,7 +21,7 @@ class Alerts {
 	 * Hook in.
 	 */
 	public function register() {
-		add_action( 'anshield_event_logged', array( $this, 'maybe_send' ) );
+		add_action( 'jatss_event_logged', array( $this, 'maybe_send' ) );
 	}
 
 	/**
@@ -49,14 +49,14 @@ class Alerts {
 			return;
 		}
 
-		$bucket = 'anshield_alerts_' . gmdate( 'YmdH' );
+		$bucket = 'jatss_alerts_' . gmdate( 'YmdH' );
 		$sent   = (int) get_transient( $bucket );
 		if ( $sent >= self::HOURLY_CAP ) {
 			if ( self::HOURLY_CAP === $sent ) {
 				set_transient( $bucket, $sent + 1, HOUR_IN_SECONDS );
 				$this->send(
-					__( 'Alert limit reached', 'anderson-site-shield' ),
-					__( 'More security events happened this hour than the alert limit allows. Further emails are paused until the next hour. Check the activity log on the site for the full list.', 'anderson-site-shield' )
+					__( 'Alert limit reached', 'jat-site-shield' ),
+					__( 'More security events happened this hour than the alert limit allows. Further emails are paused until the next hour. Check the activity log on the site for the full list.', 'jat-site-shield' )
 				);
 			}
 			return;
@@ -73,7 +73,7 @@ class Alerts {
 			sprintf( 'User:     %s', '' !== $event['username'] ? $event['username'] : '-' ),
 			sprintf( 'IP:       %s', $event['ip'] ),
 			'',
-			sprintf( 'Activity log: %s', admin_url( 'admin.php?page=anderson-site-shield-log' ) ),
+			sprintf( 'Activity log: %s', admin_url( 'admin.php?page=jat-site-shield-log' ) ),
 		);
 		$this->send( $event['message'], implode( "\n", $lines ) );
 	}

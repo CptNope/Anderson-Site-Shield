@@ -2,16 +2,16 @@
 /**
  * Two-factor authentication (TOTP + backup codes).
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield\Modules;
+namespace JATSiteShield\Modules;
 
-use AndersonSiteShield\Event_Log;
-use AndersonSiteShield\Settings;
-use AndersonSiteShield\Totp;
-use AndersonSiteShield\Modules\Login_Protection;
-use AndersonSiteShield\Modules\Login_Url;
+use JATSiteShield\Event_Log;
+use JATSiteShield\Settings;
+use JATSiteShield\Totp;
+use JATSiteShield\Modules\Login_Protection;
+use JATSiteShield\Modules\Login_Url;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,15 +20,15 @@ defined( 'ABSPATH' ) || exit;
  */
 class Two_Factor {
 
-	const META_SECRET  = 'anshield_totp_secret';
-	const META_PENDING = 'anshield_totp_pending';
-	const META_LAST    = 'anshield_totp_last_step';
-	const META_BACKUP  = 'anshield_backup_codes';
-	const META_LOGIN   = 'anshield_2fa_login';
-	const META_FAILS   = 'anshield_2fa_fails';
+	const META_SECRET  = 'jatss_totp_secret';
+	const META_PENDING = 'jatss_totp_pending';
+	const META_LAST    = 'jatss_totp_last_step';
+	const META_BACKUP  = 'jatss_backup_codes';
+	const META_LOGIN   = 'jatss_2fa_login';
+	const META_FAILS   = 'jatss_2fa_fails';
 
-	const SETUP_PAGE   = 'anderson-site-shield-2fa';
-	const LOGIN_ACTION = 'anshield_2fa';
+	const SETUP_PAGE   = 'jat-site-shield-2fa';
+	const LOGIN_ACTION = 'jatss_2fa';
 	const TOKEN_TTL    = 600;
 	const MAX_ATTEMPTS = 5;
 	const BACKUP_COUNT = 10;
@@ -47,7 +47,7 @@ class Two_Factor {
 		add_action( 'edit_user_profile', array( $this, 'profile_section' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'handle_admin_reset' ) );
 
-		if ( ANSHIELD_SAFE_MODE ) {
+		if ( JATSS_SAFE_MODE ) {
 			return;
 		}
 
@@ -77,7 +77,7 @@ class Two_Factor {
 	 */
 	public function mark_session( $info, $user_id ) {
 		if ( $this->verified_login ) {
-			$info['anshield_2fa'] = time();
+			$info['jatss_2fa'] = time();
 		}
 		return $info;
 	}
@@ -95,7 +95,7 @@ class Two_Factor {
 		$manager = \WP_Session_Tokens::get_instance( $user_id );
 		$session = $manager->get( $token );
 		if ( is_array( $session ) ) {
-			$session['anshield_2fa'] = time();
+			$session['jatss_2fa'] = time();
 			$manager->update( $token, $session );
 		}
 	}
@@ -119,7 +119,7 @@ class Two_Factor {
 		}
 		$manager = \WP_Session_Tokens::get_instance( $user_id );
 		$session = $manager->get( $token );
-		if ( is_array( $session ) && ! empty( $session['anshield_2fa'] ) ) {
+		if ( is_array( $session ) && ! empty( $session['jatss_2fa'] ) ) {
 			return;
 		}
 
@@ -130,7 +130,7 @@ class Two_Factor {
 		Event_Log::log(
 			'2fa.session_rejected',
 			'critical',
-			sprintf( /* translators: %s: username */ __( 'Ended a session for %s that skipped two-factor (a login made outside the normal login form).', 'anderson-site-shield' ), $user ? $user->user_login : '#' . $user_id ),
+			sprintf( /* translators: %s: username */ __( 'Ended a session for %s that skipped two-factor (a login made outside the normal login form).', 'jat-site-shield' ), $user ? $user->user_login : '#' . $user_id ),
 			array( 'user_id' => $user_id )
 		);
 		if ( ! wp_doing_ajax() && ! wp_doing_cron() && ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) && ( is_admin() || 'GET' === ( isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : '' ) ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
@@ -161,7 +161,7 @@ class Two_Factor {
 	 * @return bool
 	 */
 	private static function lock( $user_id ) {
-		$name = 'anshield_2fa_lock_' . (int) $user_id;
+		$name = 'jatss_2fa_lock_' . (int) $user_id;
 		if ( add_option( $name, time(), '', false ) ) {
 			return true;
 		}
@@ -178,7 +178,7 @@ class Two_Factor {
 	 * @param int $user_id User ID.
 	 */
 	private static function unlock( $user_id ) {
-		delete_option( 'anshield_2fa_lock_' . (int) $user_id );
+		delete_option( 'jatss_2fa_lock_' . (int) $user_id );
 	}
 
 	/**
@@ -188,8 +188,8 @@ class Two_Factor {
 	 * @return \WP_Error
 	 */
 	public function login_notice( $errors ) {
-		if ( isset( $_GET['anshield_expired'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$errors->add( 'anshield_expired', __( 'Your two-factor step expired or had too many wrong codes. Sign in again.', 'anderson-site-shield' ), 'message' );
+		if ( isset( $_GET['jatss_expired'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$errors->add( 'jatss_expired', __( 'Your two-factor step expired or had too many wrong codes. Sign in again.', 'jat-site-shield' ), 'message' );
 		}
 		return $errors;
 	}
@@ -243,7 +243,7 @@ class Two_Factor {
 
 	/**
 	 * Enrolled, but the secret can't be decrypted (the key file was lost or
-	 * ANSHIELD_SECRET_KEY changed). Logins are refused until an admin resets it.
+	 * JATSS_SECRET_KEY changed). Logins are refused until an admin resets it.
 	 *
 	 * @param int $user_id User ID.
 	 * @return bool
@@ -279,7 +279,7 @@ class Two_Factor {
 			'warning',
 			sprintf(
 				/* translators: 1: username, 2: reason */
-				__( 'Two-factor was reset for %1$s (%2$s).', 'anderson-site-shield' ),
+				__( 'Two-factor was reset for %1$s (%2$s).', 'jat-site-shield' ),
 				$user ? $user->user_login : '#' . $user_id,
 				$why
 			),
@@ -369,8 +369,8 @@ class Two_Factor {
 		}
 
 		if ( self::is_broken( $user->ID ) ) {
-			Event_Log::log_throttled( '2fa.key_missing', 'critical', sprintf( /* translators: %s: username */ __( 'Two-factor secret for %s cannot be decrypted (encryption key missing or changed). Login refused; reset two-factor for the user.', 'anderson-site-shield' ), $user->user_login ) );
-			return new \WP_Error( 'anshield_2fa_broken', __( '<strong>Error:</strong> Two-factor for this account needs to be reset by an administrator.', 'anderson-site-shield' ) );
+			Event_Log::log_throttled( '2fa.key_missing', 'critical', sprintf( /* translators: %s: username */ __( 'Two-factor secret for %s cannot be decrypted (encryption key missing or changed). Login refused; reset two-factor for the user.', 'jat-site-shield' ), $user->user_login ) );
+			return new \WP_Error( 'jatss_2fa_broken', __( '<strong>Error:</strong> Two-factor for this account needs to be reset by an administrator.', 'jat-site-shield' ) );
 		}
 
 		// Application passwords are separate, revocable credentials; let them through.
@@ -380,16 +380,17 @@ class Two_Factor {
 
 		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
 			if ( Settings::get( 'twofa_block_xmlrpc' ) ) {
-				return new \WP_Error( 'anshield_2fa_xmlrpc', __( 'This account uses two-factor authentication and cannot sign in over XML-RPC. Use an application password.', 'anderson-site-shield' ) );
+				return new \WP_Error( 'jatss_2fa_xmlrpc', __( 'This account uses two-factor authentication and cannot sign in over XML-RPC. Use an application password.', 'jat-site-shield' ) );
 			}
 			return $user;
 		}
 
 		if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
-			return new \WP_Error( 'anshield_2fa_required', __( 'Two-factor authentication is required. Sign in from the login page.', 'anderson-site-shield' ) );
+			return new \WP_Error( 'jatss_2fa_required', __( 'Two-factor authentication is required. Sign in from the login page.', 'jat-site-shield' ) );
 		}
 
-		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		// Runs inside core's login form handling, which has no nonce; the values are only passed along.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 		$redirect = isset( $_REQUEST['redirect_to'] ) && is_string( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$remember = ! empty( $_POST['rememberme'] );
 		$interim  = ! empty( $_REQUEST['interim-login'] );
@@ -441,7 +442,7 @@ class Two_Factor {
 	}
 
 	/**
-	 * The code step on wp-login.php?action=anshield_2fa.
+	 * The code step on wp-login.php?action=jatss_2fa.
 	 */
 	public function login_step() {
 		// phpcs:disable WordPress.Security.NonceVerification
@@ -453,32 +454,37 @@ class Two_Factor {
 		$state = $user ? $this->pending_login( $uid, $token ) : false;
 
 		if ( ! $user || ! $state ) {
-			wp_safe_redirect( add_query_arg( 'anshield_expired', '1', wp_login_url() ) );
+			wp_safe_redirect( add_query_arg( 'jatss_expired', '1', wp_login_url() ) );
 			exit;
 		}
 
 		$error = '';
-		$ip    = \AndersonSiteShield\Request::ip();
-		if ( Settings::get( 'login_protection' ) && ! \AndersonSiteShield\Request::is_allowlisted() && Login_Protection::remaining_lockout( $ip ) > 0 ) {
-			$this->render_login_step( $uid, $token, __( '<strong>Error:</strong> Too many failed login attempts from your network. Try again later.', 'anderson-site-shield' ), true );
+		$ip    = \JATSiteShield\Request::ip();
+		if ( Settings::get( 'login_protection' ) && ! \JATSiteShield\Request::is_allowlisted() && Login_Protection::remaining_lockout( $ip ) > 0 ) {
+			$this->render_login_step( $uid, $token, __( '<strong>Error:</strong> Too many failed login attempts from your network. Try again later.', 'jat-site-shield' ), true );
 			exit;
 		}
 		if ( self::user_failures( $uid ) >= self::USER_FAILS ) {
-			$this->render_login_step( $uid, $token, __( '<strong>Error:</strong> Too many wrong codes for this account. Try again in an hour.', 'anderson-site-shield' ), true );
+			$this->render_login_step( $uid, $token, __( '<strong>Error:</strong> Too many wrong codes for this account. Try again in an hour.', 'jat-site-shield' ), true );
 			exit;
 		}
 		if ( 'POST' === ( isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : '' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-			$code = isset( $_POST['anshield_code'] ) && is_string( $_POST['anshield_code'] ) ? sanitize_text_field( wp_unslash( $_POST['anshield_code'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$nonce = isset( $_POST['_jatss_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_jatss_nonce'] ) ) : '';
+			if ( ! wp_verify_nonce( $nonce, 'jatss_2fa_login_' . $uid ) ) {
+				$this->render_login_step( $uid, $token, __( '<strong>Error:</strong> The form expired. Enter the newest code again.', 'jat-site-shield' ) );
+				exit;
+			}
+			$code = isset( $_POST['jatss_code'] ) && is_string( $_POST['jatss_code'] ) ? sanitize_text_field( wp_unslash( $_POST['jatss_code'] ) ) : '';
 
 			if ( ! self::lock( $uid ) ) {
-				$this->render_login_step( $uid, $token, __( '<strong>Error:</strong> Another attempt is in progress. Try again in a moment.', 'anderson-site-shield' ) );
+				$this->render_login_step( $uid, $token, __( '<strong>Error:</strong> Another attempt is in progress. Try again in a moment.', 'jat-site-shield' ) );
 				exit;
 			}
 			// Re-read inside the lock so parallel requests see each other's attempts.
 			$state = $this->pending_login( $uid, $token );
 			if ( ! $state ) {
 				self::unlock( $uid );
-				wp_safe_redirect( add_query_arg( 'anshield_expired', '1', wp_login_url() ) );
+				wp_safe_redirect( add_query_arg( 'jatss_expired', '1', wp_login_url() ) );
 				exit;
 			}
 			$method = self::check_code( $uid, $code );
@@ -494,8 +500,8 @@ class Two_Factor {
 					'2fa.success',
 					'backup' === $method ? 'notice' : 'info',
 					'backup' === $method
-						? sprintf( /* translators: %s: username */ __( '%s signed in with a backup code.', 'anderson-site-shield' ), $user->user_login )
-						: sprintf( /* translators: %s: username */ __( '%s passed two-factor.', 'anderson-site-shield' ), $user->user_login ),
+						? sprintf( /* translators: %s: username */ __( '%s signed in with a backup code.', 'jat-site-shield' ), $user->user_login )
+						: sprintf( /* translators: %s: username */ __( '%s passed two-factor.', 'jat-site-shield' ), $user->user_login ),
 					array(
 						'user_id' => $uid,
 						'context' => array(
@@ -504,14 +510,14 @@ class Two_Factor {
 						),
 					)
 				);
-				/** This action is documented in wp-includes/user.php */
-				do_action( 'wp_login', $user->user_login, $user );
+				/** This action is documented in wp-includes/user.php. Core's hook, fired here because this step completes the login. */
+				do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 
 				if ( ! empty( $state['interim'] ) ) {
 					// Session-expired popup in the dashboard: show core's "logged in" page so the popup closes.
 					global $interim_login;
 					$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-					login_header( '', '<p class="message">' . esc_html__( 'You have logged in successfully.', 'anderson-site-shield' ) . '</p>' );
+					login_header( '', '<p class="message">' . esc_html__( 'You have logged in successfully.', 'jat-site-shield' ) . '</p>' );
 					echo '</div>';
 					/** This action is documented in wp-login.php */
 					do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
@@ -535,31 +541,31 @@ class Two_Factor {
 				Event_Log::log(
 					'2fa.password_compromise_suspected',
 					'critical',
-					sprintf( /* translators: %s: username */ __( 'Someone entered the correct password for %s but failed two-factor 3 times. The password may be known to an attacker; change it.', 'anderson-site-shield' ), $user->user_login ),
+					sprintf( /* translators: %s: username */ __( 'Someone entered the correct password for %s but failed two-factor 3 times. The password may be known to an attacker; change it.', 'jat-site-shield' ), $user->user_login ),
 					array( 'user_id' => $uid )
 				);
 			}
 			Event_Log::log(
 				'2fa.failed',
 				'warning',
-				sprintf( /* translators: %s: username */ __( 'Wrong two-factor code for %s.', 'anderson-site-shield' ), $user->user_login ),
+				sprintf( /* translators: %s: username */ __( 'Wrong two-factor code for %s.', 'jat-site-shield' ), $user->user_login ),
 				array(
 					'user_id' => $uid,
 					'context' => array( 'attempts' => $state['attempts'] ),
 				)
 			);
 			/** Count it toward the IP lockout too. */
-			do_action( 'wp_login_failed', $user->user_login, new \WP_Error( 'anshield_2fa_failed', 'Wrong two-factor code.' ) );
+			do_action( 'wp_login_failed', $user->user_login, new \WP_Error( 'jatss_2fa_failed', 'Wrong two-factor code.' ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core's hook.
 
 			if ( $state['attempts'] >= self::MAX_ATTEMPTS ) {
 				delete_user_meta( $uid, self::META_LOGIN );
 				self::unlock( $uid );
-				wp_safe_redirect( add_query_arg( 'anshield_expired', '1', wp_login_url() ) );
+				wp_safe_redirect( add_query_arg( 'jatss_expired', '1', wp_login_url() ) );
 				exit;
 			}
 			update_user_meta( $uid, self::META_LOGIN, $state );
 			self::unlock( $uid );
-			$error = __( '<strong>Error:</strong> That code is not correct. Try the newest code in your app.', 'anderson-site-shield' );
+			$error = __( '<strong>Error:</strong> That code is not correct. Try the newest code in your app.', 'jat-site-shield' );
 		}
 
 		$this->render_login_step( $uid, $token, $error );
@@ -576,32 +582,33 @@ class Two_Factor {
 	private function render_login_step( $uid, $token, $error, $blocked = false ) {
 		$wp_error = new \WP_Error();
 		if ( $error ) {
-			$wp_error->add( 'anshield_2fa', $error );
+			$wp_error->add( 'jatss_2fa', $error );
 		}
-		login_header( __( 'Two-factor authentication', 'anderson-site-shield' ), '', $wp_error );
+		login_header( __( 'Two-factor authentication', 'jat-site-shield' ), '', $wp_error );
 		if ( $blocked ) {
 			login_footer();
 			return;
 		}
 		$action = add_query_arg( 'action', self::LOGIN_ACTION, site_url( 'wp-login.php', 'login_post' ) );
 		?>
-		<form name="anshield_2fa" id="loginform" action="<?php echo esc_url( $action ); ?>" method="post" autocomplete="off">
-			<p><?php esc_html_e( 'Enter the 6-digit code from your authenticator app, or one of your backup codes.', 'anderson-site-shield' ); ?></p>
+		<form name="jatss_2fa" id="loginform" action="<?php echo esc_url( $action ); ?>" method="post" autocomplete="off">
+			<p><?php esc_html_e( 'Enter the 6-digit code from your authenticator app, or one of your backup codes.', 'jat-site-shield' ); ?></p>
 			<p>
-				<label for="anshield_code"><?php esc_html_e( 'Authentication code', 'anderson-site-shield' ); ?></label>
-				<input type="text" name="anshield_code" id="anshield_code" class="input" value="" size="20" inputmode="numeric" autocomplete="one-time-code" autofocus required />
+				<label for="jatss_code"><?php esc_html_e( 'Authentication code', 'jat-site-shield' ); ?></label>
+				<input type="text" name="jatss_code" id="jatss_code" class="input" value="" size="20" inputmode="numeric" autocomplete="one-time-code" autofocus required />
 			</p>
 			<input type="hidden" name="uid" value="<?php echo esc_attr( $uid ); ?>" />
 			<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>" />
+			<?php wp_nonce_field( 'jatss_2fa_login_' . $uid, '_jatss_nonce', false ); ?>
 			<?php if ( ! empty( $_REQUEST['interim-login'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
 				<input type="hidden" name="interim-login" value="1" />
 			<?php endif; ?>
 			<p class="submit">
-				<input type="submit" class="button button-primary button-large" value="<?php esc_attr_e( 'Verify', 'anderson-site-shield' ); ?>" />
+				<input type="submit" class="button button-primary button-large" value="<?php esc_attr_e( 'Verify', 'jat-site-shield' ); ?>" />
 			</p>
 		</form>
 		<?php
-		login_footer( 'anshield_code' );
+		login_footer( 'jatss_code' );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -624,7 +631,7 @@ class Two_Factor {
 			return;
 		}
 		if ( 'admin-post.php' === $pagenow ) {
-			wp_die( esc_html__( 'Set up two-factor authentication first.', 'anderson-site-shield' ), 403 );
+			wp_die( esc_html__( 'Set up two-factor authentication first.', 'jat-site-shield' ), 403 );
 		}
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SETUP_PAGE . '&required=1' ) );
 		exit;
@@ -654,7 +661,7 @@ class Two_Factor {
 			return $result;
 		}
 		if ( self::pending_enrollment() ) {
-			return new \WP_Error( 'anshield_2fa_setup', __( 'Set up two-factor authentication before using the API.', 'anderson-site-shield' ), array( 'status' => 403 ) );
+			return new \WP_Error( 'jatss_2fa_setup', __( 'Set up two-factor authentication before using the API.', 'jat-site-shield' ), array( 'status' => 403 ) );
 		}
 		return $result;
 	}
@@ -665,8 +672,8 @@ class Two_Factor {
 	public function add_setup_page() {
 		add_submenu_page(
 			'profile.php',
-			__( 'Two-factor authentication', 'anderson-site-shield' ),
-			__( 'Two-factor', 'anderson-site-shield' ),
+			__( 'Two-factor authentication', 'jat-site-shield' ),
+			__( 'Two-factor', 'jat-site-shield' ),
 			'read',
 			self::SETUP_PAGE,
 			array( $this, 'render_setup_page' )
@@ -675,8 +682,8 @@ class Two_Factor {
 		if ( current_user_can( 'list_users' ) ) {
 			add_submenu_page(
 				'users.php',
-				__( 'Two-factor authentication', 'anderson-site-shield' ),
-				__( 'Two-factor', 'anderson-site-shield' ),
+				__( 'Two-factor authentication', 'jat-site-shield' ),
+				__( 'Two-factor', 'jat-site-shield' ),
 				'read',
 				self::SETUP_PAGE,
 				array( $this, 'render_setup_page' )
@@ -695,9 +702,9 @@ class Two_Factor {
 		$codes   = array();
 		$enabled = self::is_enrolled( $user->ID );
 
-		if ( isset( $_POST['anshield_2fa_op'] ) && check_admin_referer( 'anshield_2fa_' . $user->ID ) ) {
-			$op   = sanitize_key( $_POST['anshield_2fa_op'] );
-			$code = isset( $_POST['anshield_code'] ) ? sanitize_text_field( wp_unslash( $_POST['anshield_code'] ) ) : '';
+		if ( isset( $_POST['jatss_2fa_op'] ) && check_admin_referer( 'jatss_2fa_' . $user->ID ) ) {
+			$op   = sanitize_key( $_POST['jatss_2fa_op'] );
+			$code = isset( $_POST['jatss_code'] ) ? sanitize_text_field( wp_unslash( $_POST['jatss_code'] ) ) : '';
 
 			if ( 'enroll' === $op && ! $enabled ) {
 				$pending = Totp::decrypt( (string) get_user_meta( $user->ID, self::META_PENDING, true ) );
@@ -710,28 +717,28 @@ class Two_Factor {
 					$enabled = true;
 					self::mark_current_session( $user->ID );
 					wp_destroy_other_sessions();
-					$notice  = __( 'Two-factor is on. Save your backup codes below — this is the only time they are shown.', 'anderson-site-shield' );
-					Event_Log::log( '2fa.enabled', 'notice', sprintf( /* translators: %s: username */ __( '%s turned on two-factor.', 'anderson-site-shield' ), $user->user_login ), array( 'object_type' => 'user', 'object_id' => $user->ID ) );
+					$notice  = __( 'Two-factor is on. Save your backup codes below — this is the only time they are shown.', 'jat-site-shield' );
+					Event_Log::log( '2fa.enabled', 'notice', sprintf( /* translators: %s: username */ __( '%s turned on two-factor.', 'jat-site-shield' ), $user->user_login ), array( 'object_type' => 'user', 'object_id' => $user->ID ) );
 				} else {
-					$error = __( 'That code did not match. Check that your phone’s clock is set automatically and try the newest code.', 'anderson-site-shield' );
+					$error = __( 'That code did not match. Check that your phone’s clock is set automatically and try the newest code.', 'jat-site-shield' );
 				}
 			} elseif ( 'backup' === $op && $enabled ) {
 				if ( 'totp' === self::check_code( $user->ID, $code ) ) {
 					$codes  = self::new_backup_codes( $user->ID );
-					$notice = __( 'New backup codes are below. Your old codes no longer work.', 'anderson-site-shield' );
-					Event_Log::log( '2fa.backup_regenerated', 'notice', sprintf( /* translators: %s: username */ __( '%s made new backup codes.', 'anderson-site-shield' ), $user->user_login ) );
+					$notice = __( 'New backup codes are below. Your old codes no longer work.', 'jat-site-shield' );
+					Event_Log::log( '2fa.backup_regenerated', 'notice', sprintf( /* translators: %s: username */ __( '%s made new backup codes.', 'jat-site-shield' ), $user->user_login ) );
 				} else {
-					$error = __( 'Enter a current code from your authenticator app to make new backup codes.', 'anderson-site-shield' );
+					$error = __( 'Enter a current code from your authenticator app to make new backup codes.', 'jat-site-shield' );
 				}
 			} elseif ( 'disable' === $op && $enabled ) {
 				if ( self::is_required( $user ) ) {
-					$error = __( 'Your role requires two-factor, so it can’t be turned off. To move to a new phone, ask another administrator to reset it, then set it up again.', 'anderson-site-shield' );
+					$error = __( 'Your role requires two-factor, so it can’t be turned off. To move to a new phone, ask another administrator to reset it, then set it up again.', 'jat-site-shield' );
 				} elseif ( 'totp' === self::check_code( $user->ID, $code ) ) {
-					self::reset( $user->ID, __( 'turned off by the user', 'anderson-site-shield' ) );
+					self::reset( $user->ID, __( 'turned off by the user', 'jat-site-shield' ) );
 					$enabled = false;
-					$notice  = __( 'Two-factor is off.', 'anderson-site-shield' );
+					$notice  = __( 'Two-factor is off.', 'jat-site-shield' );
 				} else {
-					$error = __( 'Enter a current code from your authenticator app to turn two-factor off.', 'anderson-site-shield' );
+					$error = __( 'Enter a current code from your authenticator app to turn two-factor off.', 'jat-site-shield' );
 				}
 			}
 		}
@@ -745,14 +752,16 @@ class Two_Factor {
 			}
 		}
 
-		wp_enqueue_script( 'anshield-qrcode', ANSHIELD_URL . 'assets/vendor/qrcode.js', array(), '1.5.4', true );
-		wp_enqueue_style( 'anshield-admin', ANSHIELD_URL . 'assets/admin.css', array(), ANSHIELD_VERSION );
+		wp_enqueue_script( 'jatss-qrcode', JATSS_URL . 'assets/vendor/qrcode.js', array(), JATSS_VERSION, true );
+		wp_enqueue_script( 'jatss-two-factor', JATSS_URL . 'assets/two-factor.js', array( 'jatss-qrcode' ), JATSS_VERSION, true );
+		wp_localize_script( 'jatss-two-factor', 'jatssTwoFactor', array( 'copied' => __( 'Copied', 'jat-site-shield' ) ) );
+		wp_enqueue_style( 'jatss-admin', JATSS_URL . 'assets/admin.css', array(), JATSS_VERSION );
 		?>
-		<div class="wrap anshield-wrap">
-			<h1><?php esc_html_e( 'Two-factor authentication', 'anderson-site-shield' ); ?></h1>
+		<div class="wrap jatss-wrap">
+			<h1><?php esc_html_e( 'Two-factor authentication', 'jat-site-shield' ); ?></h1>
 
 			<?php if ( isset( $_GET['required'] ) && ! $enabled ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
-				<div class="notice notice-warning"><p><?php esc_html_e( 'Your account needs two-factor authentication before you can use the dashboard. It takes about a minute.', 'anderson-site-shield' ); ?></p></div>
+				<div class="notice notice-warning"><p><?php esc_html_e( 'Your account needs two-factor authentication before you can use the dashboard. It takes about a minute.', 'jat-site-shield' ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( $notice ) : ?>
 				<div class="notice notice-success"><p><?php echo esc_html( $notice ); ?></p></div>
@@ -762,71 +771,54 @@ class Two_Factor {
 			<?php endif; ?>
 
 			<?php if ( $codes ) : ?>
-				<div class="anshield-card">
-					<h2><?php esc_html_e( 'Backup codes', 'anderson-site-shield' ); ?></h2>
-					<p><?php esc_html_e( 'Each code works once. Keep them in your password manager, not on your phone.', 'anderson-site-shield' ); ?></p>
-					<ol class="anshield-codes"><?php foreach ( $codes as $c ) : ?><li><code><?php echo esc_html( $c ); ?></code></li><?php endforeach; ?></ol>
-					<p><button type="button" class="button" data-anshield-copy="<?php echo esc_attr( implode( "\n", $codes ) ); ?>"><?php esc_html_e( 'Copy codes', 'anderson-site-shield' ); ?></button></p>
+				<div class="jatss-card">
+					<h2><?php esc_html_e( 'Backup codes', 'jat-site-shield' ); ?></h2>
+					<p><?php esc_html_e( 'Each code works once. Keep them in your password manager, not on your phone.', 'jat-site-shield' ); ?></p>
+					<ol class="jatss-codes"><?php foreach ( $codes as $c ) : ?><li><code><?php echo esc_html( $c ); ?></code></li><?php endforeach; ?></ol>
+					<p><button type="button" class="button" data-jatss-copy="<?php echo esc_attr( implode( "\n", $codes ) ); ?>"><?php esc_html_e( 'Copy codes', 'jat-site-shield' ); ?></button></p>
 				</div>
 			<?php endif; ?>
 
 			<?php if ( ! $enabled ) : ?>
-				<div class="anshield-card anshield-enroll">
-					<h2><?php esc_html_e( '1. Scan this code', 'anderson-site-shield' ); ?></h2>
-					<p><?php esc_html_e( 'Use an authenticator app such as 1Password, Google Authenticator, Microsoft Authenticator or Authy.', 'anderson-site-shield' ); ?></p>
-					<div id="anshield-qr" class="anshield-qr" data-uri="<?php echo esc_attr( Totp::uri( $pending_secret, $user->user_login ) ); ?>" role="img" aria-label="<?php esc_attr_e( 'QR code for your authenticator app', 'anderson-site-shield' ); ?>"></div>
-					<p><?php esc_html_e( 'Can’t scan? Enter this key instead:', 'anderson-site-shield' ); ?><br /><code class="anshield-secret"><?php echo esc_html( trim( chunk_split( $pending_secret, 4, ' ' ) ) ); ?></code></p>
+				<div class="jatss-card jatss-enroll">
+					<h2><?php esc_html_e( '1. Scan this code', 'jat-site-shield' ); ?></h2>
+					<p><?php esc_html_e( 'Use an authenticator app such as 1Password, Google Authenticator, Microsoft Authenticator or Authy.', 'jat-site-shield' ); ?></p>
+					<div id="jatss-qr" class="jatss-qr" data-uri="<?php echo esc_attr( Totp::uri( $pending_secret, $user->user_login ) ); ?>" role="img" aria-label="<?php esc_attr_e( 'QR code for your authenticator app', 'jat-site-shield' ); ?>"></div>
+					<p><?php esc_html_e( 'Can’t scan? Enter this key instead:', 'jat-site-shield' ); ?><br /><code class="jatss-secret"><?php echo esc_html( trim( chunk_split( $pending_secret, 4, ' ' ) ) ); ?></code></p>
 
-					<h2><?php esc_html_e( '2. Enter the code it shows', 'anderson-site-shield' ); ?></h2>
+					<h2><?php esc_html_e( '2. Enter the code it shows', 'jat-site-shield' ); ?></h2>
 					<form method="post">
-						<?php wp_nonce_field( 'anshield_2fa_' . $user->ID ); ?>
-						<input type="hidden" name="anshield_2fa_op" value="enroll" />
-						<input type="text" name="anshield_code" class="regular-text anshield-code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" placeholder="123456" required />
-						<?php submit_button( __( 'Turn on two-factor', 'anderson-site-shield' ), 'primary', 'submit', false ); ?>
+						<?php wp_nonce_field( 'jatss_2fa_' . $user->ID ); ?>
+						<input type="hidden" name="jatss_2fa_op" value="enroll" />
+						<input type="text" name="jatss_code" class="regular-text jatss-code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" placeholder="123456" required />
+						<?php submit_button( __( 'Turn on two-factor', 'jat-site-shield' ), 'primary', 'submit', false ); ?>
 					</form>
 				</div>
 			<?php else : ?>
-				<div class="anshield-card">
-					<h2><span class="anshield-pill anshield-pill-ok"><?php esc_html_e( 'On', 'anderson-site-shield' ); ?></span> <?php esc_html_e( 'Two-factor is protecting your account', 'anderson-site-shield' ); ?></h2>
+				<div class="jatss-card">
+					<h2><span class="jatss-pill jatss-pill-ok"><?php esc_html_e( 'On', 'jat-site-shield' ); ?></span> <?php esc_html_e( 'Two-factor is protecting your account', 'jat-site-shield' ); ?></h2>
 					<p>
 						<?php
 						printf(
 							/* translators: %d: number of codes */
-							esc_html( _n( 'You have %d unused backup code.', 'You have %d unused backup codes.', count( (array) get_user_meta( $user->ID, self::META_BACKUP, true ) ), 'anderson-site-shield' ) ),
+							esc_html( _n( 'You have %d unused backup code.', 'You have %d unused backup codes.', count( (array) get_user_meta( $user->ID, self::META_BACKUP, true ) ), 'jat-site-shield' ) ),
 							(int) count( (array) get_user_meta( $user->ID, self::META_BACKUP, true ) )
 						);
 						?>
 					</p>
-					<form method="post" class="anshield-inline-form">
-						<?php wp_nonce_field( 'anshield_2fa_' . $user->ID ); ?>
-						<label><?php esc_html_e( 'Current app code', 'anderson-site-shield' ); ?>
-							<input type="text" name="anshield_code" class="small-text anshield-code-input" inputmode="numeric" autocomplete="one-time-code" required />
+					<form method="post" class="jatss-inline-form">
+						<?php wp_nonce_field( 'jatss_2fa_' . $user->ID ); ?>
+						<label><?php esc_html_e( 'Current app code', 'jat-site-shield' ); ?>
+							<input type="text" name="jatss_code" class="small-text jatss-code-input" inputmode="numeric" autocomplete="one-time-code" required />
 						</label>
-						<button class="button" name="anshield_2fa_op" value="backup"><?php esc_html_e( 'Make new backup codes', 'anderson-site-shield' ); ?></button>
+						<button class="button" name="jatss_2fa_op" value="backup"><?php esc_html_e( 'Make new backup codes', 'jat-site-shield' ); ?></button>
 						<?php if ( ! self::is_required( $user ) ) : ?>
-							<button class="button button-link-delete" name="anshield_2fa_op" value="disable"><?php esc_html_e( 'Turn off two-factor', 'anderson-site-shield' ); ?></button>
+							<button class="button button-link-delete" name="jatss_2fa_op" value="disable"><?php esc_html_e( 'Turn off two-factor', 'jat-site-shield' ); ?></button>
 						<?php endif; ?>
 					</form>
 				</div>
 			<?php endif; ?>
 		</div>
-		<script>
-		document.addEventListener( 'DOMContentLoaded', function () {
-			var box = document.getElementById( 'anshield-qr' );
-			if ( box && window.qrcode ) {
-				var qr = window.qrcode( 0, 'M' );
-				qr.addData( box.getAttribute( 'data-uri' ) );
-				qr.make();
-				box.innerHTML = qr.createSvgTag( { cellSize: 5, margin: 4, scalable: true } );
-			}
-			document.querySelectorAll( '[data-anshield-copy]' ).forEach( function ( btn ) {
-				btn.addEventListener( 'click', function () {
-					navigator.clipboard && navigator.clipboard.writeText( btn.getAttribute( 'data-anshield-copy' ) );
-					btn.textContent = <?php echo wp_json_encode( __( 'Copied', 'anderson-site-shield' ) ); ?>;
-				} );
-			} );
-		} );
-		</script>
 		<?php
 	}
 
@@ -839,20 +831,20 @@ class Two_Factor {
 		$enrolled = self::is_enrolled( $user->ID );
 		$own      = get_current_user_id() === $user->ID;
 		?>
-		<h2 id="anshield-2fa"><?php esc_html_e( 'Two-factor authentication', 'anderson-site-shield' ); ?></h2>
+		<h2 id="jatss-2fa"><?php esc_html_e( 'Two-factor authentication', 'jat-site-shield' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th><?php esc_html_e( 'Status', 'anderson-site-shield' ); ?></th>
+				<th><?php esc_html_e( 'Status', 'jat-site-shield' ); ?></th>
 				<td>
 					<?php
 					echo $enrolled
-						? esc_html__( 'On', 'anderson-site-shield' )
-						: ( self::is_required( $user ) ? esc_html__( 'Off — required for this role', 'anderson-site-shield' ) : esc_html__( 'Off', 'anderson-site-shield' ) );
+						? esc_html__( 'On', 'jat-site-shield' )
+						: ( self::is_required( $user ) ? esc_html__( 'Off — required for this role', 'jat-site-shield' ) : esc_html__( 'Off', 'jat-site-shield' ) );
 					?>
 					<?php if ( $own ) : ?>
-						&nbsp;<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETUP_PAGE ) ); ?>"><?php echo $enrolled ? esc_html__( 'Manage', 'anderson-site-shield' ) : esc_html__( 'Set up', 'anderson-site-shield' ); ?></a>
+						&nbsp;<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETUP_PAGE ) ); ?>"><?php echo $enrolled ? esc_html__( 'Manage', 'jat-site-shield' ) : esc_html__( 'Set up', 'jat-site-shield' ); ?></a>
 					<?php elseif ( $enrolled && current_user_can( 'edit_user', $user->ID ) && current_user_can( 'promote_users' ) ) : ?>
-						<p><label><input type="checkbox" name="anshield_2fa_reset" value="1" /> <?php esc_html_e( 'Reset two-factor for this user (they will set it up again at next login)', 'anderson-site-shield' ); ?></label></p>
+						<p><label><input type="checkbox" name="jatss_2fa_reset" value="1" /> <?php esc_html_e( 'Reset two-factor for this user (they will set it up again at next login)', 'jat-site-shield' ); ?></label></p>
 					<?php endif; ?>
 				</td>
 			</tr>
@@ -867,12 +859,12 @@ class Two_Factor {
 	 * @param int $user_id Profile being saved.
 	 */
 	public function handle_admin_reset( $user_id ) {
-		if ( empty( $_POST['anshield_2fa_reset'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( empty( $_POST['jatss_2fa_reset'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			return;
 		}
 		if ( ! current_user_can( 'edit_user', $user_id ) || ! current_user_can( 'promote_users' ) || get_current_user_id() === (int) $user_id ) {
 			return;
 		}
-		self::reset( $user_id, sprintf( /* translators: %s: admin username */ __( 'reset by %s', 'anderson-site-shield' ), wp_get_current_user()->user_login ) );
+		self::reset( $user_id, sprintf( /* translators: %s: admin username */ __( 'reset by %s', 'jat-site-shield' ), wp_get_current_user()->user_login ) );
 	}
 }

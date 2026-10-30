@@ -2,10 +2,10 @@
 /**
  * TOTP (RFC 6238) and secret encryption.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield;
+namespace JATSiteShield;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -165,12 +165,12 @@ class Totp {
 	 * @return string
 	 */
 	public static function key_file() {
-		return WP_CONTENT_DIR . '/anshield-key.php';
+		return WP_CONTENT_DIR . '/jatss-key.php';
 	}
 
 	/**
-	 * The dedicated encryption key: the ANSHIELD_SECRET_KEY constant if set
-	 * in wp-config.php, otherwise a random key in wp-content/anshield-key.php.
+	 * The dedicated encryption key: the JATSS_SECRET_KEY constant if set
+	 * in wp-config.php, otherwise a random key in wp-content/jatss-key.php.
 	 * It is independent of the WordPress salts, so rotating the salts after
 	 * an incident does not break two-factor. Neither lives in the database,
 	 * so a database leak alone doesn't reveal 2FA secrets.
@@ -183,24 +183,24 @@ class Totp {
 		if ( null !== $key ) {
 			return $key;
 		}
-		if ( defined( 'ANSHIELD_SECRET_KEY' ) && strlen( (string) ANSHIELD_SECRET_KEY ) >= 32 ) {
-			$key = hash( 'sha256', 'anshield-2fa|' . ANSHIELD_SECRET_KEY, true );
+		if ( defined( 'JATSS_SECRET_KEY' ) && strlen( (string) JATSS_SECRET_KEY ) >= 32 ) {
+			$key = hash( 'sha256', 'jatss-2fa|' . JATSS_SECRET_KEY, true );
 			return $key;
 		}
 		$file = self::key_file();
 		if ( is_readable( $file ) ) {
 			$raw = include $file;
 			if ( is_string( $raw ) && strlen( $raw ) >= 40 ) {
-				$key = hash( 'sha256', 'anshield-2fa|' . $raw, true );
+				$key = hash( 'sha256', 'jatss-2fa|' . $raw, true );
 				return $key;
 			}
 		}
 		if ( $create && ! file_exists( $file ) && wp_is_writable( WP_CONTENT_DIR ) ) {
 			$raw = bin2hex( random_bytes( 32 ) );
-			$php = "<?php\n// Anderson Site Shield two-factor encryption key. Keep it with your backups; without it, two-factor must be reset for every user.\nreturn '" . $raw . "';\n";
+			$php = "<?php\n// JAT Site Shield two-factor encryption key. Keep it with your backups; without it, two-factor must be reset for every user.\nreturn '" . $raw . "';\n";
 			if ( false !== file_put_contents( $file, $php, LOCK_EX ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions
 				@chmod( $file, 0640 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions
-				$key = hash( 'sha256', 'anshield-2fa|' . $raw, true );
+				$key = hash( 'sha256', 'jatss-2fa|' . $raw, true );
 				return $key;
 			}
 		}
@@ -214,7 +214,7 @@ class Totp {
 	 * @return string 32 bytes.
 	 */
 	private static function salt_key() {
-		return hash( 'sha256', 'anshield-2fa|' . wp_salt( 'auth' ) . '|' . wp_salt( 'secure_auth' ), true );
+		return hash( 'sha256', 'jatss-2fa|' . wp_salt( 'auth' ) . '|' . wp_salt( 'secure_auth' ), true );
 	}
 
 	/**

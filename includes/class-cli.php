@@ -2,20 +2,20 @@
 /**
  * WP-CLI commands.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield;
+namespace JATSiteShield;
 
-use AndersonSiteShield\Modules\File_Integrity;
-use AndersonSiteShield\Modules\Login_Protection;
-use AndersonSiteShield\Modules\Login_Url;
-use AndersonSiteShield\Modules\Two_Factor;
+use JATSiteShield\Modules\File_Integrity;
+use JATSiteShield\Modules\Login_Protection;
+use JATSiteShield\Modules\Login_Url;
+use JATSiteShield\Modules\Two_Factor;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Manage Anderson Site Shield from the command line.
+ * Manage JAT Site Shield from the command line.
  */
 class CLI {
 
@@ -24,7 +24,7 @@ class CLI {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp site-shield status
+	 *     wp jat-shield status
 	 *
 	 * @param array $args       Positional.
 	 * @param array $assoc_args Named.
@@ -39,8 +39,8 @@ class CLI {
 			);
 		}
 		\WP_CLI\Utils\format_items( isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table', $rows, array( 'protection', 'status', 'note' ) );
-		if ( ANSHIELD_SAFE_MODE ) {
-			\WP_CLI::warning( 'ANSHIELD_SAFE_MODE is on: custom login URL, two-factor and lockouts are paused.' );
+		if ( JATSS_SAFE_MODE ) {
+			\WP_CLI::warning( 'JATSS_SAFE_MODE is on: custom login URL, two-factor and lockouts are paused.' );
 		}
 	}
 
@@ -67,8 +67,8 @@ class CLI {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp site-shield unlock 203.0.113.9
-	 *     wp site-shield unlock all
+	 *     wp jat-shield unlock 203.0.113.9
+	 *     wp jat-shield unlock all
 	 *
 	 * @param array $args Positional.
 	 */
@@ -105,7 +105,7 @@ class CLI {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp site-shield reset-2fa jeremy
+	 *     wp jat-shield reset-2fa jeremy
 	 *
 	 * @subcommand reset-2fa
 	 * @param array $args Positional.
@@ -143,7 +143,7 @@ class CLI {
 		wp_clear_scheduled_hook( File_Integrity::CRON_TICK );
 		$state = File_Integrity::state();
 		while ( 'running' === $state['status'] ) {
-			delete_transient( 'anshield_fim_lock' );
+			delete_transient( 'jatss_fim_lock' );
 			$fim->tick( 3600 );
 			$state = File_Integrity::state();
 		}
@@ -161,7 +161,7 @@ class CLI {
 			);
 		}
 		foreach ( (array) $last['notes'] as $target => $note ) {
-			\WP_CLI::debug( $target . ': ' . $note, 'site-shield' );
+			\WP_CLI::debug( $target . ': ' . $note, 'jat-shield' );
 		}
 		if ( ! $rows ) {
 			\WP_CLI::success( 'No issues found.' );

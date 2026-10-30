@@ -2,13 +2,13 @@
 /**
  * Core hardening.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield\Modules;
+namespace JATSiteShield\Modules;
 
-use AndersonSiteShield\Event_Log;
-use AndersonSiteShield\Settings;
+use JATSiteShield\Event_Log;
+use JATSiteShield\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class Hardening {
 
-	const HTACCESS_MARKER = 'Anderson Site Shield';
+	const HTACCESS_MARKER = 'JAT Site Shield';
 
 	/**
 	 * Hook in.
@@ -66,7 +66,7 @@ class Hardening {
 	 * @return bool
 	 */
 	public static function xmlrpc_needed() {
-		return (bool) apply_filters( 'anshield_xmlrpc_needed', defined( 'JETPACK__VERSION' ) || class_exists( 'Jetpack' ) );
+		return (bool) apply_filters( 'jatss_xmlrpc_needed', defined( 'JETPACK__VERSION' ) || class_exists( 'Jetpack' ) );
 	}
 
 	/**
@@ -104,9 +104,9 @@ class Hardening {
 		}
 		$author = isset( $wp->query_vars['author'] ) ? $wp->query_vars['author'] : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$raw = isset( $_GET['author'] ) ? wp_unslash( $_GET['author'] ) : '';
+		$raw = isset( $_GET['author'] ) && is_string( $_GET['author'] ) ? sanitize_text_field( wp_unslash( $_GET['author'] ) ) : '';
 		if ( ( '' !== $author && is_numeric( $author ) ) || ( '' !== $raw && ! is_array( $raw ) && preg_match( '/^\s*-?\d/', (string) $raw ) ) ) {
-			Event_Log::log_throttled( 'harden.user_enum_blocked', 'info', __( 'Blocked a username scan (?author=).', 'anderson-site-shield' ) );
+			Event_Log::log_throttled( 'harden.user_enum_blocked', 'info', __( 'Blocked a username scan (?author=).', 'jat-site-shield' ) );
 			wp_safe_redirect( home_url( '/' ), 301 );
 			exit;
 		}
@@ -127,7 +127,7 @@ class Hardening {
 			if ( is_user_logged_in() && preg_match( '#^/wp/v2/users/(me|' . get_current_user_id() . ')$#', $route ) ) {
 				return $result;
 			}
-			return new \WP_Error( 'rest_user_cannot_view', __( 'Sorry, you are not allowed to list users.', 'anderson-site-shield' ), array( 'status' => rest_authorization_required_code() ) );
+			return new \WP_Error( 'rest_user_cannot_view', __( 'Sorry, you are not allowed to list users.', 'jat-site-shield' ), array( 'status' => rest_authorization_required_code() ) );
 		}
 		return $result;
 	}
@@ -234,9 +234,9 @@ class Hardening {
 	 */
 	public static function test_uploads_php() {
 		$uploads = wp_get_upload_dir();
-		$name    = 'anshield-test-' . wp_generate_password( 12, false ) . '.php';
+		$name    = 'jatss-test-' . wp_generate_password( 12, false ) . '.php';
 		$path    = trailingslashit( $uploads['basedir'] ) . $name;
-		$marker  = 'anshield-' . wp_generate_password( 16, false );
+		$marker  = 'jatss-' . wp_generate_password( 16, false );
 
 		// The file only prints a marker; it reads no input. The marker is split in the
 		// source, so seeing it whole proves the PHP ran (not just that the source was served).
@@ -248,12 +248,13 @@ class Hardening {
 			trailingslashit( $uploads['baseurl'] ) . $name,
 			array(
 				'timeout'   => 8,
-				'sslverify' => false,
+				/** This filter is documented in wp-includes/class-wp-http-streams.php (same as core's loopback checks). */
+				'sslverify' => apply_filters( 'https_local_ssl_verify', false ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
 			)
 		);
 		wp_delete_file( $path );
 		if ( file_exists( $path ) ) {
-			Event_Log::log( 'harden.test_file_left', 'warning', sprintf( /* translators: %s: file */ __( 'Could not delete the uploads test file %s. Delete it by hand.', 'anderson-site-shield' ), $name ) );
+			Event_Log::log( 'harden.test_file_left', 'warning', sprintf( /* translators: %s: file */ __( 'Could not delete the uploads test file %s. Delete it by hand.', 'jat-site-shield' ), $name ) );
 		}
 
 		if ( is_wp_error( $response ) ) {

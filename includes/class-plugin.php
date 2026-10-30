@@ -2,10 +2,10 @@
 /**
  * Plugin bootstrap.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield;
+namespace JATSiteShield;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class Plugin {
 
-	const CRON_DAILY = 'anshield_daily';
+	const CRON_DAILY = 'jatss_daily';
 
 	/**
 	 * Singleton.
@@ -57,7 +57,7 @@ class Plugin {
 	 * so the custom login URL can catch the request early.
 	 */
 	public function boot() {
-		if ( get_option( 'anshield_db_version' ) !== Event_Log::DB_VERSION ) {
+		if ( get_option( 'jatss_db_version' ) !== Event_Log::DB_VERSION ) {
 			add_action( 'init', array( Event_Log::class, 'install' ), 1 );
 		}
 
@@ -81,10 +81,8 @@ class Plugin {
 			( new Admin\Admin() )->register();
 		}
 
-		( new Updater() )->register();
-
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			\WP_CLI::add_command( 'site-shield', CLI::class );
+			\WP_CLI::add_command( 'jat-shield', CLI::class );
 		}
 	}
 

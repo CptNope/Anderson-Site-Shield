@@ -17,10 +17,11 @@ jobs:
       - name: Check the tag matches the plugin version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          HEADER=$(grep -E '^ \* Version:' anderson-site-shield.php | awk '{print $3}')
-          CONST=$(grep -oE "ANSHIELD_VERSION', '[^']+" anderson-site-shield.php | cut -d"'" -f3)
-          echo "tag=$TAG header=$HEADER const=$CONST"
-          [ "$TAG" = "$HEADER" ] && [ "$TAG" = "$CONST" ]
+          HEADER=$(grep -E '^ \* Version:' jat-site-shield.php | awk '{print $3}')
+          CONST=$(grep -oE "JATSS_VERSION', '[^']+" jat-site-shield.php | cut -d"'" -f3)
+          STABLE=$(grep -E '^Stable tag:' readme.txt | awk '{print $3}')
+          echo "tag=$TAG header=$HEADER const=$CONST readme=$STABLE"
+          [ "$TAG" = "$HEADER" ] && [ "$TAG" = "$CONST" ] && [ "$TAG" = "$STABLE" ]
       - name: Build zip
         run: bash bin/build-zip.sh
       - name: Publish release
@@ -29,8 +30,29 @@ jobs:
         run: |
           # Works whether the tag was pushed or the release was made on GitHub's website.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/anderson-site-shield.zip --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/jat-site-shield.zip --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/anderson-site-shield.zip \
-              --title "Anderson Site Shield $GITHUB_REF_NAME" --generate-notes
+            gh release create "$GITHUB_REF_NAME" dist/jat-site-shield.zip \
+              --title "JAT Site Shield $GITHUB_REF_NAME" --generate-notes
           fi
+
+  # Publishes the release to the WordPress.org plugin directory. Runs only after
+  # the plugin is approved and SVN_USERNAME / SVN_PASSWORD are added as repository
+  # secrets (Settings > Secrets and variables > Actions). Uses .distignore and the
+  # banner, icon and screenshots in .wordpress-org/.
+  wordpress-org:
+    needs: release
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      HAS_SVN: ${{ secrets.SVN_USERNAME != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.HAS_SVN == 'true'
+      - name: Deploy to WordPress.org
+        if: env.HAS_SVN == 'true'
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: jat-site-shield

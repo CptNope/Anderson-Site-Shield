@@ -3,21 +3,21 @@
  * Custom login URL: serves the login page at a private address and returns
  * "Not Found" for wp-login.php and for /wp-admin when logged out.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield\Modules;
+namespace JATSiteShield\Modules;
 
-use AndersonSiteShield\Event_Log;
-use AndersonSiteShield\Settings;
+use JATSiteShield\Event_Log;
+use JATSiteShield\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Moves wp-login.php to /{slug}.
  *
- * Recovery if you forget the address: add define( 'ANSHIELD_SAFE_MODE', true );
- * to wp-config.php, or run `wp site-shield login-url` to print it.
+ * Recovery if you forget the address: add define( 'JATSS_SAFE_MODE', true );
+ * to wp-config.php, or run `wp jat-shield login-url` to print it.
  */
 class Login_Url {
 
@@ -50,7 +50,7 @@ class Login_Url {
 	public static function enabled() {
 		return Settings::get( 'custom_login_enabled' )
 			&& '' !== (string) Settings::get( 'custom_login_slug' )
-			&& ! ANSHIELD_SAFE_MODE
+			&& ! JATSS_SAFE_MODE
 			&& ! is_multisite()
 			&& ! ( defined( 'WP_CLI' ) && WP_CLI );
 	}
@@ -82,14 +82,14 @@ class Login_Url {
 	 */
 	public static function validate_slug( $slug ) {
 		if ( strlen( $slug ) < 4 ) {
-			return new \WP_Error( 'anshield_slug', __( 'The login address must be at least 4 characters.', 'anderson-site-shield' ) );
+			return new \WP_Error( 'jatss_slug', __( 'The login address must be at least 4 characters.', 'jat-site-shield' ) );
 		}
 		if ( in_array( $slug, self::RESERVED, true ) || 0 === strpos( $slug, 'wp-' ) ) {
-			return new \WP_Error( 'anshield_slug', __( 'That login address is reserved by WordPress or too easy to guess. Pick another.', 'anderson-site-shield' ) );
+			return new \WP_Error( 'jatss_slug', __( 'That login address is reserved by WordPress or too easy to guess. Pick another.', 'jat-site-shield' ) );
 		}
 		$types = get_post_types( array( 'public' => true ) );
 		if ( get_page_by_path( $slug, OBJECT, array_values( $types ) ) ) {
-			return new \WP_Error( 'anshield_slug', __( 'A page or post already uses that address. Pick another.', 'anderson-site-shield' ) );
+			return new \WP_Error( 'jatss_slug', __( 'A page or post already uses that address. Pick another.', 'jat-site-shield' ) );
 		}
 		return true;
 	}
@@ -160,7 +160,7 @@ class Login_Url {
 		}
 
 		if ( $this->is_direct ) {
-			Event_Log::log_throttled( 'auth.login_page_probe', 'info', __( 'Blocked a request to wp-login.php (custom login URL is on).', 'anderson-site-shield' ) );
+			Event_Log::log_throttled( 'auth.login_page_probe', 'info', __( 'Blocked a request to wp-login.php (custom login URL is on).', 'jat-site-shield' ) );
 			$this->not_found();
 		}
 

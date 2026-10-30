@@ -2,10 +2,10 @@
 /**
  * Settings store.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield;
+namespace JATSiteShield;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class Settings {
 
-	const OPTION = 'anshield_settings';
+	const OPTION = 'jatss_settings';
 
 	/**
 	 * Cached settings.
@@ -217,7 +217,7 @@ class Settings {
 		$enabled = isset( $out['custom_login_enabled'] ) ? $out['custom_login_enabled'] : $current['custom_login_enabled'];
 		$slug    = isset( $out['custom_login_slug'] ) ? $out['custom_login_slug'] : $current['custom_login_slug'];
 		if ( $enabled && '' === $slug ) {
-			return new \WP_Error( 'anshield_slug', __( 'Choose a login address before turning on the custom login URL.', 'anderson-site-shield' ) );
+			return new \WP_Error( 'jatss_slug', __( 'Choose a login address before turning on the custom login URL.', 'jat-site-shield' ) );
 		}
 
 		if ( isset( $out['login_max_attempts'] ) ) {

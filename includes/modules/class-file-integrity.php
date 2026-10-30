@@ -2,13 +2,13 @@
 /**
  * File integrity monitoring.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield\Modules;
+namespace JATSiteShield\Modules;
 
-use AndersonSiteShield\Event_Log;
-use AndersonSiteShield\Settings;
+use JATSiteShield\Event_Log;
+use JATSiteShield\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,14 +20,14 @@ defined( 'ABSPATH' ) || exit;
  */
 class File_Integrity {
 
-	const STATE_OPTION = 'anshield_fim_state';
-	const LAST_OPTION  = 'anshield_fim_last';
-	const ACK_OPTION   = 'anshield_fim_ack';
-	const CRON_TICK    = 'anshield_fim_tick';
+	const STATE_OPTION = 'jatss_fim_state';
+	const LAST_OPTION  = 'jatss_fim_last';
+	const ACK_OPTION   = 'jatss_fim_ack';
+	const CRON_TICK    = 'jatss_fim_tick';
 	const TIME_BUDGET  = 20;
 	const MAX_PER_KIND = 300;
-	const BASE_OPTION  = 'anshield_fim_baseline';
-	const REBASE_OPT   = 'anshield_fim_rebase';
+	const BASE_OPTION  = 'jatss_fim_baseline';
+	const REBASE_OPT   = 'jatss_fim_rebase';
 
 	const PHP_EXT = '/\.(php[0-9]?|phtml|phar|pht|phps|inc)$/i';
 
@@ -169,15 +169,12 @@ class File_Integrity {
 		if ( 'running' !== $state['status'] ) {
 			return;
 		}
-		$lock = 'anshield_fim_lock';
+		$lock = 'jatss_fim_lock';
 		if ( get_transient( $lock ) ) {
 			return;
 		}
 		set_transient( $lock, 1, 2 * self::TIME_BUDGET + 10 );
 
-		if ( function_exists( 'set_time_limit' ) ) {
-			@set_time_limit( 2 * self::TIME_BUDGET + 30 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-		}
 		$deadline = microtime( true ) + (int) $budget;
 
 		while ( $state['queue'] && microtime( true ) < $deadline ) {
@@ -192,7 +189,7 @@ class File_Integrity {
 				} else {
 					$state['notes'][ 'cap:' . $kind ] = sprintf(
 						/* translators: 1: number, 2: kind */
-						__( 'Only the first %1$d %2$s are listed.', 'anderson-site-shield' ),
+						__( 'Only the first %1$d %2$s are listed.', 'jat-site-shield' ),
 						self::MAX_PER_KIND,
 						self::kind_label( $kind )
 					);
@@ -279,7 +276,7 @@ class File_Integrity {
 				$worst,
 				sprintf(
 					/* translators: %s: summary */
-					__( 'File integrity scan found new issues: %s.', 'anderson-site-shield' ),
+					__( 'File integrity scan found new issues: %s.', 'jat-site-shield' ),
 					implode( ', ', $parts )
 				),
 				array(
@@ -288,7 +285,7 @@ class File_Integrity {
 				)
 			);
 		} elseif ( 'manual' === $state['trigger'] ) {
-			Event_Log::log( 'fim.clean', 'info', __( 'File integrity scan finished with no new issues.', 'anderson-site-shield' ) );
+			Event_Log::log( 'fim.clean', 'info', __( 'File integrity scan finished with no new issues.', 'jat-site-shield' ) );
 		}
 	}
 
@@ -302,30 +299,30 @@ class File_Integrity {
 	public static function kind_label( $kind, $single = false ) {
 		if ( $single ) {
 			$one = array(
-				'core_modified'   => __( 'Modified core file', 'anderson-site-shield' ),
-				'core_missing'    => __( 'Missing core file', 'anderson-site-shield' ),
-				'core_unknown'    => __( 'Not part of WordPress', 'anderson-site-shield' ),
-				'core_leftover'   => __( 'Left over from an old update', 'anderson-site-shield' ),
-				'plugin_modified' => __( 'Modified plugin file', 'anderson-site-shield' ),
-				'plugin_unknown'  => __( 'Not part of the plugin', 'anderson-site-shield' ),
-				'uploads_php'     => __( 'PHP file in uploads', 'anderson-site-shield' ),
-				'content_unknown' => __( 'Unexpected PHP in wp-content', 'anderson-site-shield' ),
-				'new_php'         => __( 'New PHP file since last scan', 'anderson-site-shield' ),
-				'changed_php'     => __( 'PHP file changed since last scan', 'anderson-site-shield' ),
+				'core_modified'   => __( 'Modified core file', 'jat-site-shield' ),
+				'core_missing'    => __( 'Missing core file', 'jat-site-shield' ),
+				'core_unknown'    => __( 'Not part of WordPress', 'jat-site-shield' ),
+				'core_leftover'   => __( 'Left over from an old update', 'jat-site-shield' ),
+				'plugin_modified' => __( 'Modified plugin file', 'jat-site-shield' ),
+				'plugin_unknown'  => __( 'Not part of the plugin', 'jat-site-shield' ),
+				'uploads_php'     => __( 'PHP file in uploads', 'jat-site-shield' ),
+				'content_unknown' => __( 'Unexpected PHP in wp-content', 'jat-site-shield' ),
+				'new_php'         => __( 'New PHP file since last scan', 'jat-site-shield' ),
+				'changed_php'     => __( 'PHP file changed since last scan', 'jat-site-shield' ),
 			);
 			return isset( $one[ $kind ] ) ? $one[ $kind ] : $kind;
 		}
 		$labels = array(
-			'core_modified'   => __( 'modified core files', 'anderson-site-shield' ),
-			'core_missing'    => __( 'missing core files', 'anderson-site-shield' ),
-			'core_unknown'    => __( 'unknown files in core folders', 'anderson-site-shield' ),
-			'core_leftover'   => __( 'files left over from older WordPress versions', 'anderson-site-shield' ),
-			'plugin_modified' => __( 'modified plugin files', 'anderson-site-shield' ),
-			'plugin_unknown'  => __( 'unknown PHP files in plugins', 'anderson-site-shield' ),
-			'uploads_php'     => __( 'PHP files in uploads', 'anderson-site-shield' ),
-			'content_unknown' => __( 'unexpected PHP files in wp-content', 'anderson-site-shield' ),
-			'new_php'         => __( 'new PHP files in themes, mu-plugins or custom plugins', 'anderson-site-shield' ),
-			'changed_php'     => __( 'changed PHP files in themes, mu-plugins or custom plugins', 'anderson-site-shield' ),
+			'core_modified'   => __( 'modified core files', 'jat-site-shield' ),
+			'core_missing'    => __( 'missing core files', 'jat-site-shield' ),
+			'core_unknown'    => __( 'unknown files in core folders', 'jat-site-shield' ),
+			'core_leftover'   => __( 'files left over from older WordPress versions', 'jat-site-shield' ),
+			'plugin_modified' => __( 'modified plugin files', 'jat-site-shield' ),
+			'plugin_unknown'  => __( 'unknown PHP files in plugins', 'jat-site-shield' ),
+			'uploads_php'     => __( 'PHP files in uploads', 'jat-site-shield' ),
+			'content_unknown' => __( 'unexpected PHP files in wp-content', 'jat-site-shield' ),
+			'new_php'         => __( 'new PHP files in themes, mu-plugins or custom plugins', 'jat-site-shield' ),
+			'changed_php'     => __( 'changed PHP files in themes, mu-plugins or custom plugins', 'jat-site-shield' ),
 		);
 		return isset( $labels[ $kind ] ) ? $labels[ $kind ] : $kind;
 	}
@@ -349,7 +346,7 @@ class File_Integrity {
 				if ( in_array( $f['kind'], array( 'new_php', 'changed_php' ), true ) ) {
 					self::accept_into_baseline( $path );
 				}
-				Event_Log::log( 'fim.acknowledged', 'notice', sprintf( /* translators: %s: path */ __( 'File integrity finding accepted: %s.', 'anderson-site-shield' ), $path ) );
+				Event_Log::log( 'fim.acknowledged', 'notice', sprintf( /* translators: %s: path */ __( 'File integrity finding accepted: %s.', 'jat-site-shield' ), $path ) );
 				return true;
 			}
 		}
@@ -380,7 +377,7 @@ class File_Integrity {
 		}
 		update_option( self::ACK_OPTION, $acks, false );
 		if ( $n ) {
-			Event_Log::log( 'fim.acknowledged_all', 'warning', sprintf( /* translators: %d: count */ __( 'All %d open file integrity findings were accepted at once.', 'anderson-site-shield' ), $n ) );
+			Event_Log::log( 'fim.acknowledged_all', 'warning', sprintf( /* translators: %d: count */ __( 'All %d open file integrity findings were accepted at once.', 'jat-site-shield' ), $n ) );
 		}
 		return $n;
 	}
@@ -470,7 +467,7 @@ class File_Integrity {
 	private static function core_checksums() {
 		global $wp_version;
 		$locale = get_locale();
-		$key    = 'anshield_core_sums_' . md5( $wp_version . $locale );
+		$key    = 'jatss_core_sums_' . md5( $wp_version . $locale );
 		$sums   = get_site_transient( $key );
 		if ( is_array( $sums ) && $sums ) {
 			return $sums;
@@ -498,7 +495,7 @@ class File_Integrity {
 		if ( ! $sums ) {
 			return array(
 				'findings' => array(),
-				'note'     => __( 'Could not download the official WordPress checksums, so core files were not checked this time.', 'anderson-site-shield' ),
+				'note'     => __( 'Could not download the official WordPress checksums, so core files were not checked this time.', 'jat-site-shield' ),
 			);
 		}
 
@@ -533,7 +530,7 @@ class File_Integrity {
 					continue;
 				}
 				if ( isset( $leftovers[ $rel ] ) ) {
-					$findings[] = self::finding( $file->getPathname(), 'core_leftover', 'info', __( 'Listed by WordPress as removed in an older update; safe to delete.', 'anderson-site-shield' ) );
+					$findings[] = self::finding( $file->getPathname(), 'core_leftover', 'info', __( 'Listed by WordPress as removed in an older update; safe to delete.', 'jat-site-shield' ) );
 				} elseif ( preg_match( self::PHP_EXT, $rel ) ) {
 					$findings[] = self::finding( $file->getPathname(), 'core_unknown', 'critical' );
 				} elseif ( 'error_log' !== basename( $rel ) ) {
@@ -547,7 +544,7 @@ class File_Integrity {
 		foreach ( (array) glob( ABSPATH . '*.php' ) as $abs ) {
 			$rel = self::relative( $abs );
 			if ( ! isset( $sums[ $rel ] ) && ! isset( $known_root[ $rel ] ) && ! isset( $leftovers[ $rel ] ) ) {
-				$findings[] = self::finding( $abs, 'core_unknown', 'warning', __( 'PHP file in the site root that is not part of WordPress. Check what installed it.', 'anderson-site-shield' ) );
+				$findings[] = self::finding( $abs, 'core_unknown', 'warning', __( 'PHP file in the site root that is not part of WordPress. Check what installed it.', 'jat-site-shield' ) );
 			}
 		}
 
@@ -681,7 +678,7 @@ class File_Integrity {
 	 * @return array|null|false path => md5 list; null = not on WordPress.org; false = network error.
 	 */
 	private static function plugin_checksums( $slug, $version ) {
-		$key    = 'anshield_pl_sums_' . md5( $slug . '|' . $version );
+		$key    = 'jatss_pl_sums_' . md5( $slug . '|' . $version );
 		$cached = get_site_transient( $key );
 		if ( is_array( $cached ) ) {
 			return isset( $cached['none'] ) ? null : $cached;
@@ -724,12 +721,12 @@ class File_Integrity {
 		}
 		$sums = self::plugin_checksums( $slug, $plugins[ $slug ]['version'] );
 		if ( null === $sums ) {
-			return $this->scan_baseline( 'plugins/' . $slug, __( 'Not from WordPress.org, so compared with the previous scan instead of official checksums.', 'anderson-site-shield' ) );
+			return $this->scan_baseline( 'plugins/' . $slug, __( 'Not from WordPress.org, so compared with the previous scan instead of official checksums.', 'jat-site-shield' ) );
 		}
 		if ( false === $sums ) {
 			return array(
 				'findings' => array(),
-				'note'     => __( 'Could not download checksums this time.', 'anderson-site-shield' ),
+				'note'     => __( 'Could not download checksums this time.', 'jat-site-shield' ),
 			);
 		}
 
@@ -818,7 +815,7 @@ class File_Integrity {
 			if ( self::is_silence_stub( $abs ) ) {
 				continue;
 			}
-			$findings[] = self::finding( $abs, 'uploads_php', 'critical', __( 'PHP files do not belong in uploads. Inspect it with Anderson Shell Scanner before deleting.', 'anderson-site-shield' ) );
+			$findings[] = self::finding( $abs, 'uploads_php', 'critical', __( 'PHP files do not belong in uploads. Inspect it with JAT Shell Scanner before deleting.', 'jat-site-shield' ) );
 		}
 
 		return array(
@@ -832,7 +829,7 @@ class File_Integrity {
 	 *
 	 * @var string[]
 	 */
-	const CONTENT_ALLOWED = array( 'index.php', 'advanced-cache.php', 'object-cache.php', 'db.php', 'db-error.php', 'install.php', 'maintenance.php', 'php-error.php', 'fatal-error-handler.php', 'sunrise.php', 'blog-deleted.php', 'blog-inactive.php', 'blog-suspended.php', 'anshield-key.php' );
+	const CONTENT_ALLOWED = array( 'index.php', 'advanced-cache.php', 'object-cache.php', 'db.php', 'db-error.php', 'install.php', 'maintenance.php', 'php-error.php', 'fatal-error-handler.php', 'sunrise.php', 'blog-deleted.php', 'blog-inactive.php', 'blog-suspended.php', 'jatss-key.php' );
 
 	/**
 	 * PHP files directly in wp-content that aren't known drop-ins.
@@ -849,7 +846,7 @@ class File_Integrity {
 			if ( in_array( strtolower( $name ), self::CONTENT_ALLOWED, true ) ) {
 				continue;
 			}
-			$findings[] = self::finding( $base . $name, 'content_unknown', 'warning', __( 'Not a WordPress drop-in. Check what put it here.', 'anderson-site-shield' ) );
+			$findings[] = self::finding( $base . $name, 'content_unknown', 'warning', __( 'Not a WordPress drop-in. Check what put it here.', 'jat-site-shield' ) );
 		}
 		return array(
 			'findings' => $findings,
@@ -904,7 +901,7 @@ class File_Integrity {
 			update_option( self::BASE_OPTION, $all, false );
 			update_option( self::REBASE_OPT, array_values( array_diff( $rebase, array( $rel ) ) ), false );
 			if ( null === $prev ) {
-				$note = trim( $note . ' ' . __( 'Baseline recorded on this scan.', 'anderson-site-shield' ) );
+				$note = trim( $note . ' ' . __( 'Baseline recorded on this scan.', 'jat-site-shield' ) );
 			}
 		}
 

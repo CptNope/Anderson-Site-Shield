@@ -2,10 +2,10 @@
 /**
  * Request helpers: client IP and user agent.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield;
+namespace JATSiteShield;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -22,10 +22,10 @@ class Request {
 	 */
 	public static function ip_sources() {
 		return array(
-			'REMOTE_ADDR'           => __( 'Direct connection (REMOTE_ADDR) — safest default', 'anderson-site-shield' ),
-			'HTTP_CF_CONNECTING_IP' => __( 'Cloudflare (CF-Connecting-IP)', 'anderson-site-shield' ),
-			'HTTP_X_REAL_IP'        => __( 'Reverse proxy (X-Real-IP)', 'anderson-site-shield' ),
-			'HTTP_X_FORWARDED_FOR'  => __( 'Reverse proxy (X-Forwarded-For, nearest hop)', 'anderson-site-shield' ),
+			'REMOTE_ADDR'           => __( 'Direct connection (REMOTE_ADDR) — safest default', 'jat-site-shield' ),
+			'HTTP_CF_CONNECTING_IP' => __( 'Cloudflare (CF-Connecting-IP)', 'jat-site-shield' ),
+			'HTTP_X_REAL_IP'        => __( 'Reverse proxy (X-Real-IP)', 'jat-site-shield' ),
+			'HTTP_X_FORWARDED_FOR'  => __( 'Reverse proxy (X-Forwarded-For, nearest hop)', 'jat-site-shield' ),
 		);
 	}
 

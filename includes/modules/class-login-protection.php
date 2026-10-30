@@ -2,14 +2,14 @@
 /**
  * Login protection: failed-login lockouts and generic error messages.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield\Modules;
+namespace JATSiteShield\Modules;
 
-use AndersonSiteShield\Event_Log;
-use AndersonSiteShield\Request;
-use AndersonSiteShield\Settings;
+use JATSiteShield\Event_Log;
+use JATSiteShield\Request;
+use JATSiteShield\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class Login_Protection {
 
-	const LOCKOUTS_OPTION = 'anshield_lockouts';
+	const LOCKOUTS_OPTION = 'jatss_lockouts';
 
 	/**
 	 * The real failure reason before generic_error() hid it.
@@ -52,7 +52,7 @@ class Login_Protection {
 	 * @return bool
 	 */
 	private function active() {
-		return ! ANSHIELD_SAFE_MODE && ! Request::is_allowlisted();
+		return ! JATSS_SAFE_MODE && ! Request::is_allowlisted();
 	}
 
 	/**
@@ -62,7 +62,7 @@ class Login_Protection {
 	 * @return string
 	 */
 	private static function key( $ip ) {
-		return 'anshield_lp_' . md5( Request::bucket( $ip ) );
+		return 'jatss_lp_' . md5( Request::bucket( $ip ) );
 	}
 
 	/**
@@ -132,10 +132,10 @@ class Login_Protection {
 		$remaining = self::remaining_lockout( Request::ip() );
 		if ( $remaining > 0 ) {
 			return new \WP_Error(
-				'anshield_locked',
+				'jatss_locked',
 				sprintf(
 					/* translators: %d: minutes */
-					__( '<strong>Error:</strong> Too many failed login attempts. Try again in %d minutes.', 'anderson-site-shield' ),
+					__( '<strong>Error:</strong> Too many failed login attempts. Try again in %d minutes.', 'jat-site-shield' ),
 					max( 1, (int) ceil( $remaining / 60 ) )
 				)
 			);
@@ -150,7 +150,7 @@ class Login_Protection {
 	 * @param \WP_Error|null $error    Why it failed.
 	 */
 	public function record_failure( $username, $error = null ) {
-		if ( $error instanceof \WP_Error && $error->get_error_code() === 'anshield_locked' ) {
+		if ( $error instanceof \WP_Error && $error->get_error_code() === 'jatss_locked' ) {
 			return;
 		}
 		if ( ! $this->active() ) {
@@ -167,14 +167,14 @@ class Login_Protection {
 		} ) );
 		$state['fails'][] = $now;
 
-		$is_2fa = $error instanceof \WP_Error && 'anshield_2fa_failed' === $error->get_error_code();
+		$is_2fa = $error instanceof \WP_Error && 'jatss_2fa_failed' === $error->get_error_code();
 		if ( ! $is_2fa ) { // Two-factor failures are already logged as 2fa.failed.
 			Event_Log::log(
 				'auth.login_failed',
 				'info',
 				sprintf(
 					/* translators: %s: username */
-					__( 'Failed login for "%s".', 'anderson-site-shield' ),
+					__( 'Failed login for "%s".', 'jat-site-shield' ),
 					$username
 				),
 				array(
@@ -209,7 +209,7 @@ class Login_Protection {
 				'warning',
 				sprintf(
 					/* translators: 1: IP, 2: minutes */
-					__( 'Locked out %1$s for %2$d minutes after repeated failed logins.', 'anderson-site-shield' ),
+					__( 'Locked out %1$s for %2$d minutes after repeated failed logins.', 'jat-site-shield' ),
 					$ip,
 					(int) round( $duration / 60 )
 				),
@@ -234,7 +234,7 @@ class Login_Protection {
 	 * @param string $username Attempted username.
 	 */
 	private static function track_username( $username ) {
-		$key   = 'anshield_uf_' . md5( strtolower( (string) $username ) );
+		$key   = 'jatss_uf_' . md5( strtolower( (string) $username ) );
 		$count = (int) get_transient( $key ) + 1;
 		set_transient( $key, $count, HOUR_IN_SECONDS );
 		if ( 50 === $count && get_user_by( 'login', $username ) ) {
@@ -243,7 +243,7 @@ class Login_Protection {
 				'warning',
 				sprintf(
 					/* translators: %s: username */
-					__( '50 failed logins for "%s" from many IPs in the last hour. Make sure this account has a strong password and two-factor.', 'anderson-site-shield' ),
+					__( '50 failed logins for "%s" from many IPs in the last hour. Make sure this account has a strong password and two-factor.', 'jat-site-shield' ),
 					$username
 				),
 				array(
@@ -283,7 +283,7 @@ class Login_Protection {
 				'incorrect_password',
 				sprintf(
 					/* translators: %s: lost password URL */
-					__( '<strong>Error:</strong> The username, email address or password is incorrect. <a href="%s">Lost your password?</a>', 'anderson-site-shield' ),
+					__( '<strong>Error:</strong> The username, email address or password is incorrect. <a href="%s">Lost your password?</a>', 'jat-site-shield' ),
 					esc_url( wp_lostpassword_url() )
 				)
 			);
@@ -307,7 +307,7 @@ class Login_Protection {
 		if ( $user ) {
 			return;
 		}
-		Event_Log::log_throttled( 'auth.reset_unknown_user', 'info', __( 'Password reset requested for an unknown account.', 'anderson-site-shield' ) );
+		Event_Log::log_throttled( 'auth.reset_unknown_user', 'info', __( 'Password reset requested for an unknown account.', 'jat-site-shield' ) );
 		if ( $this->active() ) {
 			$this->record_failure( $login, new \WP_Error( 'invalidcombo', 'Unknown account on lost password form.' ) );
 		}
@@ -366,7 +366,7 @@ class Login_Protection {
 		}
 		update_option( self::LOCKOUTS_OPTION, $list, false );
 		if ( $count ) {
-			Event_Log::log( 'auth.unlock', 'notice', sprintf( /* translators: %s: IP or "all" */ __( 'Login lockout lifted for %s.', 'anderson-site-shield' ), $ip ) );
+			Event_Log::log( 'auth.unlock', 'notice', sprintf( /* translators: %s: IP or "all" */ __( 'Login lockout lifted for %s.', 'jat-site-shield' ), $ip ) );
 		}
 		return $count;
 	}

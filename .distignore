@@ -1,0 +1,11 @@
+/.git
+/.github
+/.wordpress-org
+/bin
+/dist
+/build
+/docs
+/.gitignore
+/.distignore
+/README.md
+.DS_Store

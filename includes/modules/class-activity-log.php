@@ -2,13 +2,13 @@
 /**
  * Activity log: records security-relevant changes on the site.
  *
- * @package AndersonSiteShield
+ * @package JATSiteShield
  */
 
-namespace AndersonSiteShield\Modules;
+namespace JATSiteShield\Modules;
 
-use AndersonSiteShield\Event_Log;
-use AndersonSiteShield\Settings;
+use JATSiteShield\Event_Log;
+use JATSiteShield\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -62,7 +62,7 @@ class Activity_Log {
 		add_action( '_core_updated_successfully', array( $this, 'core_updated' ), 10, 1 );
 
 		add_action( 'updated_option', array( $this, 'option_updated' ), 10, 3 );
-		add_action( 'update_option_' . \AndersonSiteShield\Settings::OPTION, array( $this, 'settings_changed' ), 10, 2 );
+		add_action( 'update_option_' . \JATSiteShield\Settings::OPTION, array( $this, 'settings_changed' ), 10, 2 );
 	}
 
 	/**
@@ -76,7 +76,7 @@ class Activity_Log {
 		Event_Log::log(
 			'auth.login',
 			$is_admin ? 'notice' : 'info',
-			sprintf( /* translators: %s: username */ __( '%s logged in.', 'anderson-site-shield' ), $login ),
+			sprintf( /* translators: %s: username */ __( '%s logged in.', 'jat-site-shield' ), $login ),
 			array( 'user_id' => $user instanceof \WP_User ? $user->ID : 0 )
 		);
 	}
@@ -87,7 +87,7 @@ class Activity_Log {
 	 * @param int $user_id User ID.
 	 */
 	public function logout( $user_id = 0 ) {
-		Event_Log::log( 'auth.logout', 'info', __( 'User logged out.', 'anderson-site-shield' ), array( 'user_id' => (int) $user_id ) );
+		Event_Log::log( 'auth.logout', 'info', __( 'User logged out.', 'jat-site-shield' ), array( 'user_id' => (int) $user_id ) );
 	}
 
 	/**
@@ -121,10 +121,10 @@ class Activity_Log {
 			self::role_severity( $role ),
 			sprintf(
 				/* translators: 1: new username, 2: role, 3: who */
-				__( 'New user %1$s created with role %2$s (%3$s).', 'anderson-site-shield' ),
+				__( 'New user %1$s created with role %2$s (%3$s).', 'jat-site-shield' ),
 				$user ? $user->user_login : '#' . $user_id,
 				$role ? $role : 'none',
-				$actor ? sprintf( /* translators: %s: username */ __( 'by %s', 'anderson-site-shield' ), wp_get_current_user()->user_login ) : __( 'self-registration or code', 'anderson-site-shield' )
+				$actor ? sprintf( /* translators: %s: username */ __( 'by %s', 'jat-site-shield' ), wp_get_current_user()->user_login ) : __( 'self-registration or code', 'jat-site-shield' )
 			),
 			array(
 				'object_type' => 'user',
@@ -148,7 +148,7 @@ class Activity_Log {
 		Event_Log::log(
 			'user.deleted',
 			'warning',
-			sprintf( /* translators: %s: username */ __( 'User %s was deleted.', 'anderson-site-shield' ), $user instanceof \WP_User ? $user->user_login : '#' . $id ),
+			sprintf( /* translators: %s: username */ __( 'User %s was deleted.', 'jat-site-shield' ), $user instanceof \WP_User ? $user->user_login : '#' . $id ),
 			array(
 				'object_type' => 'user',
 				'object_id'   => $id,
@@ -177,7 +177,7 @@ class Activity_Log {
 			self::role_severity( $role ),
 			sprintf(
 				/* translators: 1: username, 2: old roles, 3: new role */
-				__( 'Role of %1$s changed from %2$s to %3$s.', 'anderson-site-shield' ),
+				__( 'Role of %1$s changed from %2$s to %3$s.', 'jat-site-shield' ),
 				$user ? $user->user_login : '#' . $user_id,
 				$old_roles ? implode( ', ', (array) $old_roles ) : 'none',
 				$role ? $role : 'none'
@@ -204,7 +204,7 @@ class Activity_Log {
 		Event_Log::log(
 			'user.role_added',
 			self::role_severity( $role ),
-			sprintf( /* translators: 1: role, 2: username */ __( 'Role %1$s added to %2$s.', 'anderson-site-shield' ), $role, $user ? $user->user_login : '#' . $user_id ),
+			sprintf( /* translators: 1: role, 2: username */ __( 'Role %1$s added to %2$s.', 'jat-site-shield' ), $role, $user ? $user->user_login : '#' . $user_id ),
 			array(
 				'object_type' => 'user',
 				'object_id'   => $user_id,
@@ -219,7 +219,7 @@ class Activity_Log {
 	 */
 	public function super_admin( $user_id ) {
 		$user = get_userdata( $user_id );
-		Event_Log::log( 'user.super_admin', 'critical', sprintf( /* translators: %s: username */ __( '%s was made a super admin.', 'anderson-site-shield' ), $user ? $user->user_login : '#' . $user_id ) );
+		Event_Log::log( 'user.super_admin', 'critical', sprintf( /* translators: %s: username */ __( '%s was made a super admin.', 'jat-site-shield' ), $user ? $user->user_login : '#' . $user_id ) );
 	}
 
 	/**
@@ -239,7 +239,7 @@ class Activity_Log {
 			Event_Log::log(
 				'user.email_changed',
 				$privileged ? 'critical' : 'notice',
-				sprintf( /* translators: 1: username, 2: old, 3: new */ __( 'Email of %1$s changed from %2$s to %3$s.', 'anderson-site-shield' ), $user->user_login, $old_user->user_email, $user->user_email ),
+				sprintf( /* translators: 1: username, 2: old, 3: new */ __( 'Email of %1$s changed from %2$s to %3$s.', 'jat-site-shield' ), $user->user_login, $old_user->user_email, $user->user_email ),
 				array(
 					'object_type' => 'user',
 					'object_id'   => $user_id,
@@ -250,7 +250,7 @@ class Activity_Log {
 			Event_Log::log(
 				'user.password_changed',
 				$privileged ? 'warning' : 'info',
-				sprintf( /* translators: %s: username */ __( 'Password of %s was changed.', 'anderson-site-shield' ), $user->user_login ),
+				sprintf( /* translators: %s: username */ __( 'Password of %s was changed.', 'jat-site-shield' ), $user->user_login ),
 				array(
 					'object_type' => 'user',
 					'object_id'   => $user_id,
@@ -268,7 +268,7 @@ class Activity_Log {
 		Event_Log::log(
 			'user.password_reset',
 			$user->has_cap( 'manage_options' ) ? 'warning' : 'info',
-			sprintf( /* translators: %s: username */ __( '%s reset their password with an email link.', 'anderson-site-shield' ), $user->user_login ),
+			sprintf( /* translators: %s: username */ __( '%s reset their password with an email link.', 'jat-site-shield' ), $user->user_login ),
 			array( 'user_id' => $user->ID )
 		);
 	}
@@ -280,7 +280,7 @@ class Activity_Log {
 	 * @param array    $item Password item.
 	 */
 	public function app_password_used( $user, $item ) {
-		$key = 'anshield_ap_' . md5( $user->ID . '|' . ( isset( $item['uuid'] ) ? $item['uuid'] : '' ) );
+		$key = 'jatss_ap_' . md5( $user->ID . '|' . ( isset( $item['uuid'] ) ? $item['uuid'] : '' ) );
 		if ( get_transient( $key ) ) {
 			return;
 		}
@@ -288,7 +288,7 @@ class Activity_Log {
 		Event_Log::log(
 			'auth.app_password',
 			'info',
-			sprintf( /* translators: 1: username, 2: app name */ __( '%1$s used application password "%2$s".', 'anderson-site-shield' ), $user->user_login, isset( $item['name'] ) ? $item['name'] : '' ),
+			sprintf( /* translators: 1: username, 2: app name */ __( '%1$s used application password "%2$s".', 'jat-site-shield' ), $user->user_login, isset( $item['name'] ) ? $item['name'] : '' ),
 			array( 'user_id' => $user->ID )
 		);
 	}
@@ -304,7 +304,7 @@ class Activity_Log {
 		Event_Log::log(
 			'auth.app_password_created',
 			'warning',
-			sprintf( /* translators: 1: app name, 2: username */ __( 'Application password "%1$s" created for %2$s.', 'anderson-site-shield' ), isset( $item['name'] ) ? $item['name'] : '', $user ? $user->user_login : '#' . $user_id ),
+			sprintf( /* translators: 1: app name, 2: username */ __( 'Application password "%1$s" created for %2$s.', 'jat-site-shield' ), isset( $item['name'] ) ? $item['name'] : '', $user ? $user->user_login : '#' . $user_id ),
 			array(
 				'object_type' => 'user',
 				'object_id'   => $user_id,
@@ -342,7 +342,7 @@ class Activity_Log {
 		Event_Log::log(
 			'plugin.activated',
 			'notice',
-			sprintf( /* translators: %s: plugin */ __( 'Plugin activated: %s.', 'anderson-site-shield' ), self::plugin_name( $plugin ) ),
+			sprintf( /* translators: %s: plugin */ __( 'Plugin activated: %s.', 'jat-site-shield' ), self::plugin_name( $plugin ) ),
 			array(
 				'object_type' => 'plugin',
 				'object_id'   => $plugin,
@@ -357,13 +357,13 @@ class Activity_Log {
 	 * @param bool   $network Network-wide.
 	 */
 	public function plugin_deactivated( $plugin, $network = false ) {
-		$self = ANSHIELD_BASENAME === $plugin;
+		$self = JATSS_BASENAME === $plugin;
 		Event_Log::log(
 			$self ? 'plugin.shield_deactivated' : 'plugin.deactivated',
 			$self ? 'critical' : 'notice',
 			$self
-				? __( 'Anderson Site Shield was deactivated. The site is no longer protected.', 'anderson-site-shield' )
-				: sprintf( /* translators: %s: plugin */ __( 'Plugin deactivated: %s.', 'anderson-site-shield' ), self::plugin_name( $plugin ) ),
+				? __( 'JAT Site Shield was deactivated. The site is no longer protected.', 'jat-site-shield' )
+				: sprintf( /* translators: %s: plugin */ __( 'Plugin deactivated: %s.', 'jat-site-shield' ), self::plugin_name( $plugin ) ),
 			array(
 				'object_type' => 'plugin',
 				'object_id'   => $plugin,
@@ -384,7 +384,7 @@ class Activity_Log {
 		Event_Log::log(
 			'plugin.deleted',
 			'notice',
-			sprintf( /* translators: %s: plugin */ __( 'Plugin deleted: %s.', 'anderson-site-shield' ), $plugin ),
+			sprintf( /* translators: %s: plugin */ __( 'Plugin deleted: %s.', 'jat-site-shield' ), $plugin ),
 			array(
 				'object_type' => 'plugin',
 				'object_id'   => $plugin,
@@ -426,9 +426,9 @@ class Activity_Log {
 				'install' === $action ? 'warning' : 'info',
 				'install' === $action
 					/* translators: 1: plugin or theme, 2: name */
-					? sprintf( __( 'New %1$s installed: %2$s.', 'anderson-site-shield' ), $type, $name )
+					? sprintf( __( 'New %1$s installed: %2$s.', 'jat-site-shield' ), $type, $name )
 					/* translators: 1: plugin or theme, 2: name */
-					: sprintf( __( '%1$s updated: %2$s.', 'anderson-site-shield' ), ucfirst( $type ), $name ),
+					: sprintf( __( '%1$s updated: %2$s.', 'jat-site-shield' ), ucfirst( $type ), $name ),
 				array(
 					'object_type' => $type,
 					'object_id'   => $item,
@@ -448,7 +448,7 @@ class Activity_Log {
 		Event_Log::log(
 			'theme.switched',
 			'notice',
-			sprintf( /* translators: 1: old, 2: new */ __( 'Theme changed from %1$s to %2$s.', 'anderson-site-shield' ), $old_theme instanceof \WP_Theme ? $old_theme->get( 'Name' ) : '?', $name ),
+			sprintf( /* translators: 1: old, 2: new */ __( 'Theme changed from %1$s to %2$s.', 'jat-site-shield' ), $old_theme instanceof \WP_Theme ? $old_theme->get( 'Name' ) : '?', $name ),
 			array(
 				'object_type' => 'theme',
 				'object_id'   => $new_theme instanceof \WP_Theme ? $new_theme->get_stylesheet() : $name,
@@ -464,7 +464,7 @@ class Activity_Log {
 	 */
 	public function theme_deleted( $stylesheet, $deleted = true ) {
 		if ( $deleted ) {
-			Event_Log::log( 'theme.deleted', 'notice', sprintf( /* translators: %s: theme */ __( 'Theme deleted: %s.', 'anderson-site-shield' ), $stylesheet ) );
+			Event_Log::log( 'theme.deleted', 'notice', sprintf( /* translators: %s: theme */ __( 'Theme deleted: %s.', 'jat-site-shield' ), $stylesheet ) );
 		}
 	}
 
@@ -474,7 +474,7 @@ class Activity_Log {
 	 * @param string $version New version.
 	 */
 	public function core_updated( $version ) {
-		Event_Log::log( 'core.updated', 'notice', sprintf( /* translators: %s: version */ __( 'WordPress updated to %s.', 'anderson-site-shield' ), $version ) );
+		Event_Log::log( 'core.updated', 'notice', sprintf( /* translators: %s: version */ __( 'WordPress updated to %s.', 'jat-site-shield' ), $version ) );
 	}
 
 	/**
@@ -507,7 +507,7 @@ class Activity_Log {
 			$severity,
 			sprintf(
 				/* translators: 1: option, 2: old, 3: new */
-				__( 'Setting %1$s changed from "%2$s" to "%3$s".', 'anderson-site-shield' ),
+				__( 'Setting %1$s changed from "%2$s" to "%3$s".', 'jat-site-shield' ),
 				$option,
 				is_scalar( $old ) ? (string) $old : wp_json_encode( $old ),
 				is_scalar( $new ) ? (string) $new : wp_json_encode( $new )
@@ -549,9 +549,9 @@ class Activity_Log {
 			$off ? 'warning' : 'notice',
 			$off
 				/* translators: %s: setting keys */
-				? sprintf( __( 'Site Shield settings changed. Turned off: %s.', 'anderson-site-shield' ), implode( ', ', $off ) )
+				? sprintf( __( 'Site Shield settings changed. Turned off: %s.', 'jat-site-shield' ), implode( ', ', $off ) )
 				/* translators: %s: setting keys */
-				: sprintf( __( 'Site Shield settings changed: %s.', 'anderson-site-shield' ), implode( ', ', $changed ) ),
+				: sprintf( __( 'Site Shield settings changed: %s.', 'jat-site-shield' ), implode( ', ', $changed ) ),
 			array(
 				'context' => array(
 					'changed' => $changed,
