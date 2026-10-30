@@ -22,7 +22,7 @@ class Request {
 	 */
 	public static function ip_sources() {
 		return array(
-			'REMOTE_ADDR'           => __( 'Direct connection (REMOTE_ADDR) — safest default', 'jat-site-shield' ),
+			'REMOTE_ADDR'           => __( 'Automatic: the connection, or Cloudflare’s header when the request comes from Cloudflare', 'jat-site-shield' ),
 			'HTTP_CF_CONNECTING_IP' => __( 'Cloudflare (CF-Connecting-IP)', 'jat-site-shield' ),
 			'HTTP_X_REAL_IP'        => __( 'Reverse proxy (X-Real-IP)', 'jat-site-shield' ),
 			'HTTP_X_FORWARDED_FOR'  => __( 'Reverse proxy (X-Forwarded-For, nearest hop)', 'jat-site-shield' ),
@@ -43,6 +43,13 @@ class Request {
 		$source = Settings::get( 'ip_source' );
 		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? self::clean_ip( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$ip     = $remote;
+
+		// Behind Cloudflare with the default setting: the connection really comes from a
+		// Cloudflare edge, so its visitor header can be trusted. Without this, every
+		// visitor would share a Cloudflare IP and a few bad logins would lock out everyone.
+		if ( 'REMOTE_ADDR' === $source && ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) && ( self::is_cloudflare( $remote ) || self::is_listed_proxy( $remote ) ) ) {
+			$source = 'HTTP_CF_CONNECTING_IP';
+		}
 
 		if ( 'REMOTE_ADDR' !== $source && isset( $_SERVER[ $source ] ) && self::is_trusted_proxy( $remote, $source ) ) {
 			$raw = wp_unslash( $_SERVER[ $source ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
@@ -92,12 +99,21 @@ class Request {
 		if ( 'HTTP_CF_CONNECTING_IP' !== $source && ! filter_var( $remote, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
 			return true;
 		}
-		if ( 'HTTP_CF_CONNECTING_IP' === $source ) {
-			foreach ( self::CLOUDFLARE as $range ) {
-				if ( self::ip_in_range( $remote, $range ) ) {
-					return true;
-				}
-			}
+		if ( 'HTTP_CF_CONNECTING_IP' === $source && self::is_cloudflare( $remote ) ) {
+			return true;
+		}
+		return self::is_listed_proxy( $remote );
+	}
+
+	/**
+	 * Whether an address is on the site's Trusted proxies list.
+	 *
+	 * @param string $remote IP.
+	 * @return bool
+	 */
+	public static function is_listed_proxy( $remote ) {
+		if ( '' === $remote ) {
+			return false;
 		}
 		foreach ( preg_split( '/\s+/', trim( (string) Settings::get( 'trusted_proxies' ) ) ) as $range ) {
 			if ( '' !== $range && self::ip_in_range( $remote, $range ) ) {
@@ -105,6 +121,58 @@ class Request {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Whether an address belongs to Cloudflare's edge network.
+	 *
+	 * @param string $ip IP.
+	 * @return bool
+	 */
+	public static function is_cloudflare( $ip ) {
+		if ( '' === $ip ) {
+			return false;
+		}
+		/**
+		 * Filters Cloudflare's IP ranges, in case they change before the plugin is updated.
+		 *
+		 * @param string[] $ranges CIDR ranges.
+		 */
+		foreach ( (array) apply_filters( 'jatss_cloudflare_ranges', self::CLOUDFLARE ) as $range ) {
+			if ( self::ip_in_range( $ip, (string) $range ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether this request came through Cloudflare (edge address plus its header).
+	 *
+	 * @return bool
+	 */
+	public static function via_cloudflare() {
+		if ( empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+			return false;
+		}
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? self::clean_ip( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$header = self::clean_ip( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		// Either the connection is from a Cloudflare edge, or the web server already
+		// restored the visitor's address (mod_remoteip, nginx real_ip) from the header.
+		return self::is_cloudflare( $remote ) || self::is_listed_proxy( $remote ) || ( '' !== $header && $header === $remote );
+	}
+
+	/**
+	 * What each possible IP source says for this request (for the settings screen).
+	 *
+	 * @return array Server key => value.
+	 */
+	public static function diagnostics() {
+		$out = array();
+		foreach ( array_keys( self::ip_sources() ) as $key ) {
+			$out[ $key ] = isset( $_SERVER[ $key ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		}
+		return $out;
 	}
 
 	/**
@@ -126,12 +194,19 @@ class Request {
 	}
 
 	/**
-	 * Whether the site looks like it's behind Cloudflare while still using REMOTE_ADDR.
+	 * A Cloudflare visitor header arrived, but it couldn't be trusted, so every
+	 * visitor may be showing the same proxy address.
 	 *
 	 * @return bool
 	 */
 	public static function proxy_misconfigured() {
-		return 'REMOTE_ADDR' === Settings::get( 'ip_source' ) && ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] );
+		if ( empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+			return false;
+		}
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? self::clean_ip( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$header = self::clean_ip( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		// Fine when the server already restored the visitor IP, or when we used the header.
+		return '' !== $header && $header !== $remote && self::ip() === $remote;
 	}
 
 	/**

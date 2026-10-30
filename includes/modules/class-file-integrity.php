@@ -767,12 +767,37 @@ class File_Integrity {
 	private static function upload_parts() {
 		$base  = trailingslashit( wp_get_upload_dir()['basedir'] );
 		$parts = array( '.' );
-		foreach ( (array) @scandir( $base ) as $name ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
-			if ( '.' !== $name && '..' !== $name && is_dir( $base . $name ) && ! is_link( $base . $name ) ) {
-				$parts[] = $name; // Includes hidden folders such as ".cache".
+		foreach ( self::subdirs( $base ) as $name ) { // Includes hidden folders such as ".cache".
+			$children = self::subdirs( $base . $name );
+			if ( ! $children ) {
+				$parts[] = $name;
+				continue;
+			}
+			// Split big folders (uploads/2024 with its month folders) into one step
+			// per sub-folder, so a step never runs long enough to time out.
+			$parts[] = $name . '/.';
+			foreach ( $children as $child ) {
+				$parts[] = $name . '/' . $child;
 			}
 		}
 		return $parts;
+	}
+
+	/**
+	 * Real (non-symlink) sub-folders of a folder, hidden ones included.
+	 *
+	 * @param string $dir Folder.
+	 * @return string[] Names.
+	 */
+	private static function subdirs( $dir ) {
+		$dir = trailingslashit( $dir );
+		$out = array();
+		foreach ( (array) @scandir( $dir ) as $name ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+			if ( '.' !== $name && '..' !== $name && is_dir( $dir . $name ) && ! is_link( $dir . $name ) ) {
+				$out[] = $name;
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -786,14 +811,36 @@ class File_Integrity {
 		$findings = array();
 		$files    = array();
 
-		if ( '.' === $part ) {
-			foreach ( (array) @scandir( $base ) as $name ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
-				if ( is_file( $base . $name ) ) {
-					$files[] = $base . $name; // Hidden files included.
+		$segments = explode( '/', $part );
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment || '..' === $segment || count( $segments ) > 2 ) {
+				return array(
+					'findings' => array(),
+					'note'     => '',
+				);
+			}
+		}
+		$flat = '.' === end( $segments );
+		if ( $flat ) {
+			array_pop( $segments );
+		}
+		$rel = implode( '/', $segments );
+
+		if ( $flat ) {
+			$dir = '' === $rel ? $base : trailingslashit( $base . $rel );
+			if ( '' !== $rel && ( ! is_dir( $dir ) || is_link( untrailingslashit( $dir ) ) ) ) {
+				return array(
+					'findings' => array(),
+					'note'     => '',
+				);
+			}
+			foreach ( (array) @scandir( $dir ) as $name ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+				if ( is_file( $dir . $name ) ) {
+					$files[] = $dir . $name; // Hidden files included.
 				}
 			}
 		} else {
-			$dir = $base . basename( $part );
+			$dir = $base . $rel;
 			if ( ! is_dir( $dir ) || is_link( $dir ) ) {
 				return array(
 					'findings' => array(),

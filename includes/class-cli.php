@@ -34,7 +34,7 @@ class CLI {
 		foreach ( Admin\Admin::checks() as $check ) {
 			$rows[] = array(
 				'protection' => $check['label'],
-				'status'     => $check['ok'] ? 'on' : 'OFF',
+				'status'     => $check['ok'] ? 'on' : ( empty( $check['optional'] ) ? 'OFF' : 'optional' ),
 				'note'       => $check['note'],
 			);
 		}
