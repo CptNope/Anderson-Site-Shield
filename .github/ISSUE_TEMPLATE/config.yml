@@ -1,8 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Report a security problem privately
-    url: https://github.com/CptNope/JAT-Site-Shield/security/advisories/new
-    about: Please don't post security problems in public issues.
   - name: Ask a question or get help
     url: https://github.com/CptNope/JAT-Site-Shield/blob/main/SUPPORT.md
     about: Where to ask how-to questions and get help with your own site.
