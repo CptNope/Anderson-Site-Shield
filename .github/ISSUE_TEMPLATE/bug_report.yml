@@ -33,7 +33,7 @@ body:
     id: plugin-version
     attributes:
       label: JAT Site Shield version
-      placeholder: "1.0.0"
+      placeholder: "1.0.2"
     validations:
       required: true
   - type: input

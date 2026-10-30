@@ -2,6 +2,14 @@
 
 All notable changes to JAT Site Shield. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the plugin uses [semantic versioning](https://semver.org/). The WordPress.org changelog in [readme.txt](readme.txt) is a shorter version of this file.
 
+## [1.0.2]: 2026-10-30
+
+The release submitted to the WordPress.org plugin directory. The plugin works exactly as in 1.0.1.
+
+### Changed
+- README, support page, issue forms and the Cloudflare guide no longer link to WordPress.org pages that only exist once the plugin is listed, and the duplicate security link on the new-issue page is gone.
+- The bug report form's version example and the release steps in CONTRIBUTING.md use the current version format.
+
 ## [1.0.1]: 2026-10-30
 
 ### Fixed
@@ -52,5 +60,6 @@ First release.
 - Suggested privacy policy text. Uninstall removes all data, the two-factor key and the uploads rules.
 - Passes WordPress's Plugin Check with no errors or warnings, and the WordPress security and PHP 7.4+ compatibility sniffs in CI.
 
+[1.0.2]: https://github.com/CptNope/JAT-Site-Shield/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/CptNope/JAT-Site-Shield/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/CptNope/JAT-Site-Shield/releases/tag/v1.0.0
