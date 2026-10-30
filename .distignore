@@ -6,6 +6,14 @@
 /build
 /docs
 /.gitignore
+/.gitattributes
+/.editorconfig
 /.distignore
 /README.md
+/ROADMAP.md
+/CHANGELOG.md
+/CONTRIBUTING.md
+/SECURITY.md
+/SUPPORT.md
+/CODE_OF_CONDUCT.md
 .DS_Store

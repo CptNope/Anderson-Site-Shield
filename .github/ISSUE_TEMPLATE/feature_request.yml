@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a protection or improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check the [roadmap](https://github.com/CptNope/JAT-Site-Shield/blob/main/ROADMAP.md) first. If your idea is there, add a 👍 or a comment to the matching issue instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: The attack, mistake or chore it would prevent. Real examples help most.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Site Shield to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?
+      description: Another plugin, a server rule, a manual check…
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who would use it?
+      options:
+        - Someone running their own site
+        - An agency or freelancer with client sites
+        - A developer integrating with the plugin
+        - Everyone

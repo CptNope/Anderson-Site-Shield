@@ -1,0 +1,93 @@
+name: Bug report
+description: Something in JAT Site Shield doesn't work as it should.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this.
+
+        **Security problem?** Stop here and report it privately instead: [SECURITY.md](https://github.com/CptNope/JAT-Site-Shield/blob/main/SECURITY.md).
+        **Locked out?** Add `define( 'JATSS_SAFE_MODE', true );` to `wp-config.php`, then come back.
+
+        Never post passwords, backup codes, your custom login address or the contents of `jatss-key.php`.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to Site Shield → Settings
+        2. Turn on …
+        3. Log out and …
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: JAT Site Shield version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: wp-version
+    attributes:
+      label: WordPress version
+      placeholder: "7.1.3"
+    validations:
+      required: true
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      placeholder: "8.3"
+    validations:
+      required: true
+  - type: dropdown
+    id: proxy
+    attributes:
+      label: Is the site behind Cloudflare or another proxy?
+      options:
+        - "No"
+        - Cloudflare
+        - Another proxy or CDN
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host and server type
+      placeholder: "Cloudways (nginx + Apache), IONOS, cPanel…"
+  - type: textarea
+    id: status
+    attributes:
+      label: Output of `wp jat-shield status`, or a screenshot of the overview
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Matching activity log entries or debug.log lines
+      description: From Site Shield → Activity log, and wp-content/debug.log with WP_DEBUG_LOG on.
+      render: text
+  - type: textarea
+    id: plugins
+    attributes:
+      label: Other security, login, caching or SSO plugins
+      placeholder: "Wordfence, WP Rocket, Jetpack, WooCommerce…"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and the FAQ in readme.txt.
+          required: true
+        - label: I removed passwords, secrets and other private details.
+          required: true

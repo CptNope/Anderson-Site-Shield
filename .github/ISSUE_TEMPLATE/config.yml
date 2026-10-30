@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem privately
+    url: https://github.com/CptNope/JAT-Site-Shield/security/advisories/new
+    about: Please don't post security problems in public issues.
+  - name: Ask a question or get help
+    url: https://wordpress.org/support/plugin/jat-site-shield/
+    about: How-to questions and help with your own site go to the WordPress.org support forum.
+  - name: Hands-on help from Jeremy Anderson Tech
+    url: https://jeremyanderson.tech/book-a-call/
+    about: Paid help locking down or cleaning up a WordPress site.
