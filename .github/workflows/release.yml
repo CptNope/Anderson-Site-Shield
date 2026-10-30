@@ -13,7 +13,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check the tag matches the plugin version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
@@ -47,7 +47,7 @@ jobs:
     env:
       HAS_SVN: ${{ secrets.SVN_USERNAME != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.HAS_SVN == 'true'
       - name: Deploy to WordPress.org
         if: env.HAS_SVN == 'true'
