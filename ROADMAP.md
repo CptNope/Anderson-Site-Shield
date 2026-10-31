@@ -4,6 +4,10 @@ Where JAT Site Shield is going, in rough order. Plans change as people use the p
 
 **How to read this:** **Now** is being built, **Next** is designed and comes after that, **Later** is planned but not designed yet. Every item has to pass the same bar: it stops a way WordPress sites really get broken into, and it doesn't slow the site down or bury you in false alarms.
 
+## Security assurance (proposed, parallel track)
+
+A [source-review-based security assurance roadmap](docs/security-assurance-roadmap.md) proposes near-term verification and hardening for proxy trust, authentication/2FA integration tests, file-integrity deletion coverage, reproducible WordPress Plugin Check, pinned CI actions, release provenance, and optional tamper-resistant logging. These are **suggestions**, not released features or confirmed exploitable vulnerabilities. Prioritize validating these protections before expanding security claims or making major feature additions.
+
 ## Released
 
 ### 1.0: the foundation
